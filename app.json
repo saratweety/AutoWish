@@ -1,28 +1,68 @@
 {
   "expo": {
-    "name": "autowish",
+    "name": "AutoWish",
     "slug": "autowish",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F6F5F2",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.autowish.app"
     },
     "android": {
+      "package": "com.autowish.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F6F5F2"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F5F2"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#FFA618"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "AutoWish reads birthdays from your contacts so you can import them. They never leave your phone."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AutoWish uses your photos so you can add a picture for each person."
+        }
+      ]
+    ],
+    "owner": "saratweety",
+    "extra": {
+      "eas": {
+        "projectId": "45d22c29-80ce-40ff-bd5e-a1bc8232ce11"
+      }
+    }
   }
 }

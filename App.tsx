@@ -1,20 +1,35 @@
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { setUpNotificationDisplay } from './src/services/notifications';
+import { startListeningForTaps } from './src/services/notificationTaps';
+import { AppProvider } from './src/state/AppContext';
+import { fontAssets } from './src/theme';
+
+// Keep the native splash (gift on off-white) visible until the fonts are ready,
+// so text never flashes in the wrong font.
+SplashScreen.preventAutoHideAsync();
+setUpNotificationDisplay();
+startListeningForTaps();
 
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <AppProvider>
+        <RootNavigator />
+      </AppProvider>
+      <StatusBar style="dark" />
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

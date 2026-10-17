@@ -1,0 +1,42 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    Send at the exact time the person picked, with no extra step for them:
+    Android 13+ grants USE_EXACT_ALARM automatically to reminder/calendar apps;
+    Android 12 uses SCHEDULE_EXACT_ALARM, which is on by default there.
+  -->
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+  <!-- Bring scheduled wishes back after the phone restarts (alarms are cleared on restart). -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <!-- Lets AutoWish check that WhatsApp is installed (Android 11+). -->
+  <queries>
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
+  </queries>
+
+  <application>
+    <!-- Taps Send in WhatsApp for scheduled wishes. Off until the person switches it on in Accessibility settings. -->
+    <service
+      android:name=".AutoSendAccessibilityService"
+      android:exported="false"
+      android:label="@string/autowish_autosend_label"
+      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/autowish_autosend_service" />
+    </service>
+
+    <!-- Wakes up at a wish's send time, and restores scheduled wishes after a restart. -->
+    <receiver android:name=".AutoSendReceiver" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

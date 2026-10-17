@@ -111,7 +111,7 @@ Read this whole file before writing any code. It is the single source of truth f
 
 - Mascot: the AutoWish **gift box**: coral box (#F9A39C), pink lid (#FFB4B4), light blue ribbon and bow (#A9C1E6), blue knot (#789BD9), with a white chat bubble holding a coral heart (#EF7A70)
 - Wordmark: "Auto" in navy + "Wish" in #E0645A, Fredoka 700
-- App icon: the gift alone on a full #F6F5F2 square (1024 × 1024 PNG in `assets/icon.png`; I will supply it)
+- App icon: the gift alone on a full #F6F5F2 square (1024 × 1024 PNG, supplied in `autowish-kit/assets/icon.png`)
 
 ## 5. Motion rules (`src/theme/motion.ts`)
 
@@ -123,7 +123,7 @@ Every animation in the app uses one shared feel.
 - Bottom sheet: spring up (damping 16, stiffness 160), dark navy scrim at 35%
 - Respect "reduce motion" (`useReducedMotion`): Lottie rests on a still frame, cards appear without moving, buttons don't shrink
 
-I already have ready-made code for this in `AutoWish_motion_kit.zip`: `src/theme/colors.ts`, `src/theme/motion.ts`, `src/components/SlideInCard.tsx`, `BounceButton.tsx`, `SlideUpSheet.tsx`, and an example `HomeScreen.example.tsx`. Use them as the base (adjust paths, add missing tokens from section 4).
+I already have ready-made code for this in the `autowish-kit` folder (from `AutoWish_complete_kit.zip`): `src/theme/colors.ts`, `src/theme/motion.ts`, `src/components/SlideInCard.tsx`, `BounceButton.tsx`, `SlideUpSheet.tsx`, and an example `HomeScreen.example.tsx`. Use them as the base (move them into the project's `src/`, add missing tokens from section 4). The kit's `assets/animations/` holds the 10 Lottie files and `assets/icon.png` + `assets/adaptive-icon.png` are the app icon (1024 × 1024). Once everything is moved, the `autowish-kit` folder can be deleted.
 
 ## 6. Animations (Lottie files already made, in `assets/animations/`)
 

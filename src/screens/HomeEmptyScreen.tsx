@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLottie } from '../components/AppLottie';
 import { BounceButton } from '../components/BounceButton';
 import { colors, screenPadding, spacing, type } from '../theme';
+import { DailyGameCard } from '../components/DailyGameCard';
 import { HomeHeader } from '../components/HomeHeader';
 
 // Shown inside the Home tab when no special days are saved.
@@ -25,11 +26,9 @@ export default function HomeEmptyScreen() {
           <Text style={styles.text}>{"Add your first special day and we'll remind you before it comes."}</Text>
         </View>
         <BounceButton title="+ Add your first special day" onPress={() => navigation.navigate('AddSpecialDay')} />
-        <BounceButton
-          title="Import birthdays from contacts"
-          variant="link"
-          onPress={() => navigation.navigate('ImportContacts')}
-        />
+        <View style={styles.game}>
+          <DailyGameCard />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -43,4 +42,5 @@ const styles = StyleSheet.create({
   animation: { width: 300, height: 300 },
   title: { ...type.h1, textAlign: 'center', marginBottom: spacing.xs },
   text: { ...type.bodyMuted, fontSize: 17, lineHeight: 24, textAlign: 'center' },
+  game: { marginTop: spacing.md },
 });

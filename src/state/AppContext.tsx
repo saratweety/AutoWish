@@ -12,8 +12,8 @@ import {
   scheduleWishNotifications,
   type WishNotificationIds,
 } from '../services/notifications';
-import { DEFAULT_SETTINGS, storage } from '../storage';
-import type { Settings, SpecialDay, Wish } from '../types';
+import { DEFAULT_GIFT, DEFAULT_SETTINGS, storage } from '../storage';
+import type { GiftState, Settings, SpecialDay, Wish } from '../types';
 
 type AppState = {
   /** False until saved data has been read from the phone. */
@@ -21,6 +21,9 @@ type AppState = {
   specialDays: SpecialDay[];
   wishes: Wish[];
   settings: Settings;
+  /** Stars, unlocked items and what the gift is wearing (My Gift and the daily game). */
+  gift: GiftState;
+  updateGift: (changes: Partial<GiftState> | ((g: GiftState) => Partial<GiftState>)) => void;
   saveDay: (day: SpecialDay) => Promise<void>;
   deleteDay: (id: string) => Promise<void>;
   saveWish: (wish: Wish) => Promise<void>;
@@ -53,6 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [specialDays, setSpecialDays] = useState<SpecialDay[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [gift, setGift] = useState<GiftState>(DEFAULT_GIFT);
 
   // The latest data, for actions that finish after a wait (scheduling is async).
   const latest = useRef({ specialDays, wishes, settings });
@@ -74,10 +78,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Read saved data once when the app opens, then refresh all notifications.
   // That moves days that have passed on to next year.
   useEffect(() => {
-    Promise.all([storage.loadSpecialDays(), storage.loadWishes(), storage.loadSettings()]).then(([d, w, s]) => {
+    Promise.all([storage.loadSpecialDays(), storage.loadWishes(), storage.loadSettings(), storage.loadGift()]).then(([d, w, s, g]) => {
       setSpecialDays(d);
       setWishes(w);
       setSettings(s);
+      setGift(g);
       setReady(true);
       rescheduleFrom(d, w, s).catch(() => {});
     });
@@ -129,6 +134,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (ready) storage.saveSettings(settings);
   }, [ready, settings]);
+  useEffect(() => {
+    if (ready) storage.saveGift(gift);
+  }, [ready, gift]);
 
   const value = useMemo<AppState>(() => {
     const findDay = (id: string) => latest.current.specialDays.find((d) => d.id === id);
@@ -144,6 +152,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       specialDays,
       wishes,
       settings,
+      gift,
+
+      updateGift: (changes) => setGift((g) => ({ ...g, ...(typeof changes === 'function' ? changes(g) : changes) })),
 
       saveDay: async (day) => {
         // An edit replaces the old reminder (the date or "remind me" choice may have changed).
@@ -210,10 +221,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSpecialDays([]);
         setWishes([]);
         setSettings(DEFAULT_SETTINGS);
+        setGift(DEFAULT_GIFT);
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, specialDays, wishes, settings]);
+  }, [ready, specialDays, wishes, settings, gift]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

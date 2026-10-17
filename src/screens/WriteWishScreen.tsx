@@ -1,16 +1,17 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLottie } from '../components/AppLottie';
 import { BounceButton } from '../components/BounceButton';
-import { Chip, ChipRow } from '../components/Chip';
-import { useDateTimePicker } from '../components/DateTimeSheet';
+import { Chip, ChipScrollRow } from '../components/Chip';
+import { useCalendarSheet } from '../components/CalendarSheet';
 import { FieldLabel } from '../components/Field';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { WhatsAppBubble } from '../components/WhatsAppBubble';
-import { occasionName, TONE_LABELS } from '../data/labels';
+import { occasionWord, TONE_LABELS } from '../data/labels';
 import { fillTemplate, WISH_TEMPLATES } from '../data/wishTemplates';
 import type { RootScreenProps } from '../navigation/types';
 import { formatShortDate, formatTime, nextOccurrence, withTime } from '../services/dates';
@@ -57,7 +58,7 @@ type FormProps = {
 
 function WishForm({ day, existing, defaultSendTime, onSave, navigation }: FormProps) {
   const reduceMotion = useReducedMotion();
-  const picker = useDateTimePicker();
+  const calendar = useCalendarSheet();
 
   const [text, setText] = useState(existing?.text ?? '');
   const [tone, setTone] = useState<Tone>(existing?.tone ?? 'funny');
@@ -66,10 +67,24 @@ function WishForm({ day, existing, defaultSendTime, onSave, navigation }: FormPr
   const [sending, setSending] = useState(false);
 
   const suggest = () => {
-    const list = WISH_TEMPLATES[tone];
-    setText(fillTemplate(list[suggestion % list.length], day.name, occasionName(day).toLowerCase()));
+    // Wishes written for this occasion; for "Other" they use the occasion name that was typed.
+    const list = WISH_TEMPLATES[day.occasion][tone];
+    setText(fillTemplate(list[suggestion % list.length], day.name, occasionWord(day)));
     setSuggestion(suggestion + 1);
   };
+
+  const pickSendAt = () =>
+    calendar.open({
+      title: 'When should it go out?',
+      subtitle: 'Pick a date and a send time',
+      day: sendAt.getDate(),
+      month: sendAt.getMonth() + 1,
+      year: sendAt.getFullYear(),
+      time: format(sendAt, 'HH:mm'),
+      timeTitle: `${day.name} will get your wish at`,
+      notBefore: new Date(),
+      onDone: (pick) => setSendAt(withTime(new Date(pick.year ?? sendAt.getFullYear(), pick.month - 1, pick.day), pick.time ?? '00:00')),
+    });
 
   const schedule = () => {
     // Milestone 6 also schedules the "time to send" notification here.
@@ -111,16 +126,16 @@ function WishForm({ day, existing, defaultSendTime, onSave, navigation }: FormPr
         </View>
 
         <FieldLabel>Tone</FieldLabel>
-        <ChipRow>
+        <ChipScrollRow edge={screenPadding + spacing.xs}>
           {TONES.map((t) => (
-            <Chip key={t} label={TONE_LABELS[t]} selected={tone === t} onPress={() => setTone(t)} />
+            <Chip key={t} compact label={TONE_LABELS[t]} selected={tone === t} onPress={() => setTone(t)} />
           ))}
-        </ChipRow>
+        </ChipScrollRow>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Change send time"
-          onPress={() => picker.open('datetime', sendAt, setSendAt)}
+          onPress={pickSendAt}
           style={styles.sendRow}
         >
           <Ionicons name="logo-whatsapp" size={26} color={colors.text} />
@@ -143,7 +158,7 @@ function WishForm({ day, existing, defaultSendTime, onSave, navigation }: FormPr
           <AppLottie source={require('../../assets/animations/autowish_schedule_plane.json')} style={styles.plane} />
         </View>
       )}
-      {picker.sheet}
+      {calendar.sheet}
     </SafeAreaView>
   );
 }
@@ -182,5 +197,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  plane: { width: 260, height: 260 },
+  plane: { width: '92%', maxWidth: 380, aspectRatio: 1 },
 });

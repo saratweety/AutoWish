@@ -30,6 +30,7 @@ export const TONE_LABELS: Record<Tone, string> = {
 };
 
 export const REMIND_LABELS: Record<RemindDays, string> = {
+  0: 'On the day',
   1: '1 day before',
   3: '3 days before',
   7: '1 week before',
@@ -37,7 +38,7 @@ export const REMIND_LABELS: Record<RemindDays, string> = {
 };
 
 /** The order reminder choices appear in. */
-export const REMIND_CHOICES: RemindDays[] = [1, 3, 7, 30];
+export const REMIND_CHOICES: RemindDays[] = [0, 1, 3, 7, 30];
 
 /** "Birthday", or the custom name for "Other". */
 export function occasionName(day: Pick<SpecialDay, 'occasion' | 'customOccasion'>) {

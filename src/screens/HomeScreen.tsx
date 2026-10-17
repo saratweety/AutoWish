@@ -3,14 +3,15 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppLottie } from '../components/AppLottie';
 import { Avatar } from '../components/Avatar';
 import { CountdownBadge } from '../components/CountdownBadge';
 import { HomeHeader } from '../components/HomeHeader';
 import { SlideInCard } from '../components/SlideInCard';
+import { TodayCard, todayTextColor } from '../components/TodayCard';
+import { DailyGameCard } from '../components/DailyGameCard';
 import { occasionName, possessiveOccasion, RELATIONSHIP_LABELS } from '../data/labels';
 import { daysUntil, formatTime } from '../services/dates';
-import { displayStatus } from '../services/wishes';
+import { displayStatus, wishForNextDate } from '../services/wishes';
 import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, type } from '../theme';
 import HomeEmptyScreen from './HomeEmptyScreen';
@@ -20,7 +21,8 @@ const shownReminders = new Set<string>();
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { specialDays, wishes } = useApp();
+  const { specialDays, wishes, gift } = useApp();
+  const todayText = todayTextColor(gift.equipped);
 
   // Anything tomorrow without a wish yet? Show the reminder pop-up (once per app open).
   useFocusEffect(
@@ -51,64 +53,72 @@ export default function HomeScreen() {
         <HomeHeader />
 
         {today.map((day) => {
-          const wish = wishes.find((w) => w.specialDayId === day.id && w.status !== 'sent');
+          const wish = wishForNextDate(day, wishes);
           const status = wish && displayStatus(wish);
           return (
             <Pressable
               key={day.id}
               accessibilityRole="button"
-              accessibilityLabel={`Today is ${possessiveOccasion(day)}. Write a wish`}
+              accessibilityLabel={`Today is ${possessiveOccasion(day)}. ${status === 'sent' ? 'Wish sent' : 'Write a wish'}`}
               onPress={() => navigation.navigate('WriteWish', { specialDayId: day.id, wishId: wish?.id })}
             >
-              <SlideInCard style={styles.todayCard}>
-                <View style={styles.todayText}>
-                  <Text style={styles.todayChip}>TODAY</Text>
-                  {/* Always one line, like the design; long names shrink a little to fit. */}
-                  <Text style={styles.todayTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    {possessiveOccasion(day)}
-                  </Text>
-                  <View style={styles.statusRow}>
-                    <Feather name="clock" size={16} color={colors.text} />
-                    <Text style={styles.statusText}>
-                      {!wish
-                        ? 'Tap to write a wish'
-                        : status === 'scheduled'
-                          ? `Wish scheduled for ${formatTime(new Date(wish.sendAt))}`
-                          : 'Wish not sent yet'}
-                    </Text>
-                  </View>
-                </View>
-                <AppLottie source={require('../../assets/animations/autowish_today_gift.json')} loop style={styles.todayGift} />
+              <SlideInCard>
+                <TodayCard
+                  equipped={gift.equipped}
+                  title={possessiveOccasion(day)}
+                  status={
+                    status === 'sent' ? (
+                      <SentLine />
+                    ) : (
+                      <View style={styles.statusRow}>
+                        <Feather name="clock" size={16} color={todayText} />
+                        <Text style={[styles.statusText, { color: todayText }]}>
+                          {!wish
+                            ? 'Tap to write a wish'
+                            : status === 'scheduled'
+                              ? `Wish scheduled for ${formatTime(new Date(wish.sendAt))}`
+                              : 'Wish not sent yet'}
+                        </Text>
+                      </View>
+                    )
+                  }
+                />
               </SlideInCard>
             </Pressable>
           );
         })}
 
+        <DailyGameCard />
+
         <Text style={styles.sectionTitle} accessibilityRole="header">
           Upcoming
         </Text>
-        {upcoming.map((day, index) => (
-          <Pressable
-            key={day.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${day.name}, ${occasionName(day)}, edit`}
-            onPress={() => navigation.navigate('AddSpecialDay', { specialDayId: day.id })}
-          >
-            <SlideInCard index={index + today.length} style={styles.card}>
-              <Avatar name={day.name} photoUri={day.photoUri} />
-              <View style={styles.cardText}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {day.name}
-                </Text>
-                <View style={styles.metaRow}>
-                  <Text style={type.bodyMuted}>{occasionName(day)}</Text>
-                  <Text style={styles.relation}>{RELATIONSHIP_LABELS[day.relationship]}</Text>
+        {upcoming.map((day, index) => {
+          const sent = wishForNextDate(day, wishes)?.status === 'sent';
+          return (
+            <Pressable
+              key={day.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${day.name}, ${occasionName(day)}${sent ? ', wish sent' : ''}, edit`}
+              onPress={() => navigation.navigate('AddSpecialDay', { specialDayId: day.id })}
+            >
+              <SlideInCard index={index + today.length} style={styles.card}>
+                <Avatar name={day.name} photoUri={day.photoUri} />
+                <View style={styles.cardText}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {day.name}
+                  </Text>
+                  <View style={styles.metaRow}>
+                    <Text style={type.bodyMuted}>{occasionName(day)}</Text>
+                    <Text style={styles.relation}>{RELATIONSHIP_LABELS[day.relationship]}</Text>
+                  </View>
+                  {sent && <SentLine />}
                 </View>
-              </View>
-              <CountdownBadge days={day.daysLeft} />
-            </SlideInCard>
-          </Pressable>
-        ))}
+                <CountdownBadge days={day.daysLeft} />
+              </SlideInCard>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <Pressable
@@ -123,34 +133,26 @@ export default function HomeScreen() {
   );
 }
 
+/** Blue tick + "Wish sent", shown once the wish for this date has gone out. */
+function SentLine() {
+  return (
+    <View style={styles.sentRow}>
+      <View style={styles.sentTick}>
+        <Feather name="check" size={13} color={colors.surface} />
+      </View>
+      <Text style={styles.sentText}>Wish sent</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: screenPadding + spacing.xs, paddingTop: spacing.xs, gap: spacing.sm, paddingBottom: 110 },
-  todayCard: {
-    backgroundColor: colors.pink,
-    borderRadius: radius.cardLarge,
-    padding: spacing.lg,
-    paddingRight: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  todayText: { flex: 1, gap: spacing.xs },
-  todayChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.yellow,
-    color: colors.text,
-    fontFamily: fonts.bodyExtraBold,
-    fontSize: fontSizes.xs,
-    letterSpacing: 0.8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  todayTitle: { ...type.h2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   statusText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.text, flexShrink: 1 },
-  todayGift: { width: 112, height: 112 },
+  sentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  sentTick: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  sentText: { fontFamily: fonts.bodyExtraBold, fontSize: fontSizes.sm, color: colors.blueDark },
   sectionTitle: { ...type.h2, marginTop: spacing.md },
   card: {
     backgroundColor: colors.surface,

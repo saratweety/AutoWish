@@ -89,7 +89,7 @@ export default function PermissionsScreen({ navigation }: RootScreenProps<'Permi
         <PermissionCard
           icon="users"
           title="Contacts"
-          subtitle="To import birthdays"
+          subtitle="To pick numbers from your phone"
           allowed={contacts}
           onAllow={() => requestContacts().then(setContacts).catch(() => {})}
         />

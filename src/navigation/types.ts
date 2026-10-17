@@ -20,8 +20,9 @@ export type RootStackParamList = {
   WriteWish: { specialDayId: string; wishId?: string }; // wishId = edit an existing wish
   Success: { name: string; sendAt: string }; // sendAt as an ISO date-time
   SendConfirm: { wishId: string; failed?: boolean }; // failed = WhatsApp couldn't open
-  ImportContacts: undefined;
   AutoSendSetup: undefined;
+  MyGift: undefined;
+  ConfettiGame: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;

@@ -14,6 +14,7 @@ export const colors = {
   // brand
   pink: '#FFB4B4', // lid, Today card
   pinkLight: '#FDE3E4', // glows, soft fills
+  pinkPale: '#FEF1F1', // the lightest pink, behind the big gift so the whole box stands out
   coral: '#F9A39C', // gift box
   heart: '#EF7A70', // heart, success circle
   wordmarkCoral: '#E0645A', // "Wish" in the wordmark
@@ -23,6 +24,7 @@ export const colors = {
   blueMist: '#DAE3EA', // chips, Scheduled pill
   greyBlue: '#A0AFCC',
   orange: '#FFA618', // main buttons and countdowns
+  orangeGlow: 'rgba(255,166,24,0.45)', // soft glow around the picked day
   yellow: '#FFD961', // highlights, Today chip
   sparkle: '#F2C94C',
   outline: '#E6DFD3', // soft borders

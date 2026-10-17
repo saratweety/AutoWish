@@ -4,7 +4,8 @@ import React from 'react';
 import AboutYouScreen from '../screens/AboutYouScreen';
 import AddSpecialDayScreen from '../screens/AddSpecialDayScreen';
 import AutoSendSetupScreen from '../screens/AutoSendSetupScreen';
-import ImportContactsScreen from '../screens/ImportContactsScreen';
+import ConfettiGameScreen from '../screens/ConfettiGameScreen';
+import MyGiftScreen from '../screens/MyGiftScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PermissionsScreen from '../screens/PermissionsScreen';
 import ReminderScreen from '../screens/ReminderScreen';
@@ -43,8 +44,10 @@ export function RootNavigator() {
         <Stack.Screen name="AddSpecialDay" component={AddSpecialDayScreen} />
         <Stack.Screen name="WriteWish" component={WriteWishScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="ImportContacts" component={ImportContactsScreen} />
         <Stack.Screen name="AutoSendSetup" component={AutoSendSetupScreen} />
+        <Stack.Screen name="MyGift" component={MyGiftScreen} />
+        {/* Swiping back mid-game would lose the round, so it closes only from its own buttons or Android back. */}
+        <Stack.Screen name="ConfettiGame" component={ConfettiGameScreen} options={{ animation: 'fade_from_bottom', gestureEnabled: false }} />
         {/* See-through screen: the bottom sheet draws its own dark backdrop and slide-up motion. */}
         <Stack.Screen
           name="Reminder"

@@ -12,7 +12,7 @@ export type Relationship =
   | 'colleague';
 export type Tone = 'funny' | 'emotional' | 'formal' | 'urdu';
 export type WishStatus = 'scheduled' | 'sent' | 'not_sent';
-export type RemindDays = 1 | 3 | 7 | 30;
+export type RemindDays = 0 | 1 | 3 | 7 | 30; // 0 = on the day itself
 
 export interface SpecialDay {
   id: string;
@@ -49,10 +49,22 @@ export interface Settings {
   userName?: string;
   userPhone?: string; // the user's own WhatsApp number, digits only with country code
   userPhotoUri?: string;
-  userBirthday?: { month: number; day: number };
+  userBirthday?: { month: number; day: number; year?: number };
   defaultSendTime: string; // "00:00"
   defaultRemindDaysBefore: RemindDays;
   reminderTimeOfDay: string; // "10:00"
   onboardingDone: boolean;
   autoSend: boolean; // Android: send scheduled wishes on WhatsApp automatically
+}
+
+/** My Gift and the daily Catch the Confetti game. */
+export interface GiftState {
+  stars: number; // stars to spend in My Gift
+  unlocked: string[]; // item ids
+  equipped: { hat: string; ribbon: string; theme: string; sticker: string };
+  best: number; // best game score
+  streak: number; // days in a row the game was played
+  lastPlayed?: string; // "yyyy-MM-dd", the last day the game gave stars
+  song: number; // game music: 0, 1, 2, or -1 for none
+  sfx: boolean; // game sound effects
 }

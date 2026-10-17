@@ -1,17 +1,16 @@
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { format } from 'date-fns';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BounceButton } from '../components/BounceButton';
 import { Chip, ChipRow } from '../components/Chip';
-import { useDateTimePicker } from '../components/DateTimeSheet';
+import { useClockSheet } from '../components/ClockSheet';
 import { SlideUpSheet } from '../components/SlideUpSheet';
 import { REMIND_CHOICES, REMIND_LABELS } from '../data/labels';
 import { makeSampleData } from '../data/sample';
 import { autoSendStatus, autoSendSupported } from '../services/autoSend';
-import { formatClock, withTime } from '../services/dates';
+import { formatClock } from '../services/dates';
 import { sendTestNotification } from '../services/notifications';
 import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, touchTarget, type } from '../theme';
@@ -55,7 +54,7 @@ export default function SettingsScreen() {
   const [note, setNote] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [choosingReminder, setChoosingReminder] = useState(false);
-  const picker = useDateTimePicker();
+  const clock = useClockSheet();
 
   // Auto-send status, checked again whenever Settings is shown or the app returns from a settings page.
   const [autoStatus, setAutoStatus] = useState(autoSendStatus);
@@ -78,9 +77,6 @@ export default function SettingsScreen() {
       : 'Your wishes will be sent on WhatsApp automatically.';
   const autoLabel = autoReady ? 'On' : autoNeedsSetup ? 'almost done' : 'Off';
 
-  /** Opens a time picker for a "HH:mm" setting and saves the picked time. */
-  const pickTime = (current: string, save: (hhmm: string) => void) =>
-    picker.open('time', withTime(new Date(), current), (picked) => save(format(picked, 'HH:mm')));
 
   const testNotification = async () => {
     const result = await sendTestNotification().catch(() => 'not_allowed' as const);
@@ -156,7 +152,14 @@ export default function SettingsScreen() {
           <Row
             label="Default send time"
             value={formatClock(settings.defaultSendTime)}
-            onPress={() => pickTime(settings.defaultSendTime, (t) => updateSettings({ defaultSendTime: t }))}
+            onPress={() =>
+              clock.open({
+                title: 'Wishes go out at',
+                value: settings.defaultSendTime,
+                wishHint: true,
+                onDone: (t) => updateSettings({ defaultSendTime: t }),
+              })
+            }
           />
           <Row
             label="Default reminder"
@@ -166,7 +169,13 @@ export default function SettingsScreen() {
           <Row
             label="Reminder time"
             value={formatClock(settings.reminderTimeOfDay)}
-            onPress={() => pickTime(settings.reminderTimeOfDay, (t) => updateSettings({ reminderTimeOfDay: t }))}
+            onPress={() =>
+              clock.open({
+                title: "We'll remind you at",
+                value: settings.reminderTimeOfDay,
+                onDone: (t) => updateSettings({ reminderTimeOfDay: t }),
+              })
+            }
             last
           />
         </Section>
@@ -177,7 +186,6 @@ export default function SettingsScreen() {
         <Section title="GENERAL">
           <Row label="Your profile" value={settings.userName} onPress={() => navigation.navigate('AboutYou', { editing: true })} />
           <Row label="Notification preferences" onPress={() => Linking.openSettings()} />
-          <Row label="Import from contacts" onPress={() => navigation.navigate('ImportContacts')} />
           <Row label="Test a notification" onPress={testNotification} last />
         </Section>
         {note && <Text style={styles.note}>{note}</Text>}
@@ -225,7 +233,7 @@ export default function SettingsScreen() {
           <BounceButton title="Cancel" variant="text" onPress={() => setConfirmReset(false)} />
         </View>
       </SlideUpSheet>
-      {picker.sheet}
+      {clock.sheet}
     </SafeAreaView>
   );
 }

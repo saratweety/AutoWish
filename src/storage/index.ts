@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Settings, SpecialDay, Wish } from '../types';
+import { DEFAULT_EQUIPPED, FREE_ITEMS } from '../data/giftItems';
+import type { GiftState, Settings, SpecialDay, Wish } from '../types';
 
 // Everything is saved on the phone only, one storage key per collection.
 const KEYS = {
   specialDays: 'autowish.specialDays',
   wishes: 'autowish.wishes',
   settings: 'autowish.settings',
+  gift: 'autowish.gift',
 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -14,6 +16,16 @@ export const DEFAULT_SETTINGS: Settings = {
   reminderTimeOfDay: '10:00',
   onboardingDone: false,
   autoSend: false,
+};
+
+export const DEFAULT_GIFT: GiftState = {
+  stars: 0,
+  unlocked: FREE_ITEMS,
+  equipped: DEFAULT_EQUIPPED,
+  best: 0,
+  streak: 0,
+  song: 0,
+  sfx: true,
 };
 
 async function load<T>(key: string, fallback: T): Promise<T> {
@@ -37,5 +49,7 @@ export const storage = {
   saveWishes: (wishes: Wish[]) => save(KEYS.wishes, wishes),
   loadSettings: async () => ({ ...DEFAULT_SETTINGS, ...(await load<Partial<Settings>>(KEYS.settings, {})) }),
   saveSettings: (settings: Settings) => save(KEYS.settings, settings),
+  loadGift: async () => ({ ...DEFAULT_GIFT, ...(await load<Partial<GiftState>>(KEYS.gift, {})) }),
+  saveGift: (gift: GiftState) => save(KEYS.gift, gift),
   clearAll: () => AsyncStorage.multiRemove(Object.values(KEYS)),
 };

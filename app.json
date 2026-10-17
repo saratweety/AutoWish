@@ -48,7 +48,7 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "AutoWish reads birthdays from your contacts so you can import them. They never leave your phone."
+          "contactsPermission": "AutoWish lets you pick a person's WhatsApp number from your contacts. Your contacts never leave your phone."
         }
       ],
       [

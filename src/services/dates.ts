@@ -10,7 +10,7 @@ export function nthSunday(year: number, monthIndex: number, n: number) {
 }
 
 /** The date this special day falls on in a given year. */
-function dateInYear(day: Pick<SpecialDay, 'occasion' | 'month' | 'day'>, year: number) {
+export function dateInYear(day: Pick<SpecialDay, 'occasion' | 'month' | 'day'>, year: number) {
   // Mother's Day is the 2nd Sunday of May, Father's Day the 3rd Sunday of June,
   // so they move every year.
   if (day.occasion === 'mothers_day') return nthSunday(year, 4, 2);
@@ -52,3 +52,15 @@ export function withTime(date: Date, hhmm: string) {
 
 /** "00:00" -> "12:00 AM" */
 export const formatClock = (hhmm: string) => formatTime(withTime(new Date(), hhmm));
+
+/** Today as "yyyy-MM-dd" in the phone's own time zone, e.g. for "played the game today". */
+export const todayKey = (d = new Date()) => format(d, 'yyyy-MM-dd');
+
+/** The streak after playing today: one more if the last play was yesterday, otherwise a fresh 1. */
+export function nextStreak(lastPlayed: string | undefined, streak: number, today = new Date()) {
+  if (!lastPlayed) return 1;
+  if (lastPlayed === todayKey(today)) return Math.max(1, streak);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return lastPlayed === todayKey(yesterday) ? streak + 1 : 1;
+}

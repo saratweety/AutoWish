@@ -4,11 +4,11 @@ import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BounceButton } from '../components/BounceButton';
-import { useDateTimePicker } from '../components/DateTimeSheet';
+import { useCalendarSheet } from '../components/CalendarSheet';
+import { datePartsForCalendar, DateFields, readDateParts, toDateParts } from '../components/DateFields';
 import { FieldBox, FieldLabel, fieldStyles, TextField } from '../components/Field';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { RootScreenProps } from '../navigation/types';
-import { formatLongDate } from '../services/dates';
 import { cleanLocalNumber, DEFAULT_COUNTRY_CODE } from '../services/phone';
 import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, formPadding, radius, spacing, type } from '../theme';
@@ -17,13 +17,24 @@ import { colors, fonts, fontSizes, formPadding, radius, spacing, type } from '..
 export default function AboutYouScreen({ navigation, route }: RootScreenProps<'AboutYou'>) {
   const editing = Boolean(route.params?.editing);
   const { settings, updateSettings } = useApp();
-  const picker = useDateTimePicker();
 
   const [photoUri, setPhotoUri] = useState(settings.userPhotoUri);
   const [name, setName] = useState(settings.userName ?? '');
   const [phone, setPhone] = useState(settings.userPhone?.replace(new RegExp(`^${DEFAULT_COUNTRY_CODE}`), '') ?? '');
-  const [birthday, setBirthday] = useState(settings.userBirthday);
+  const [birthday, setBirthday] = useState(toDateParts(settings.userBirthday));
   const [error, setError] = useState<string | null>(null);
+  const calendar = useCalendarSheet();
+
+  const pickBirthday = () =>
+    calendar.open({
+      title: "When's your birthday?",
+      subtitle: 'Pick the day you were born',
+      ...datePartsForCalendar(birthday),
+      yearOptional: true,
+      yearBadge: (n) => `Turns ${n}!`,
+      yearLine: (date, n) => `Born ${date} · You turn ${n}`,
+      onDone: (pick) => setBirthday({ day: String(pick.day), month: pick.month, year: pick.year ? String(pick.year) : '' }),
+    });
 
   // During setup the next step is Permissions; when editing, go back where we came from.
   const next = () => (editing ? navigation.goBack() : navigation.navigate('Permissions'));
@@ -41,17 +52,19 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
   const save = () => {
     if (!name.trim()) return setError('Please add your name.');
     if (phone && phone.length < 7) return setError('Please check your WhatsApp number, e.g. 300 1234567.');
+    // The birthday is optional: only check it once something has been typed.
+    const hasBirthday = Boolean(birthday.day || birthday.month || birthday.year);
+    const userBirthday = hasBirthday ? readDateParts(birthday) : undefined;
+    if (userBirthday && 'error' in userBirthday) return setError(userBirthday.error);
     updateSettings({
       userName: name.trim(),
       userPhone: phone ? DEFAULT_COUNTRY_CODE + phone : undefined,
       userPhotoUri: photoUri,
-      userBirthday: birthday,
+      userBirthday,
     });
     next();
   };
 
-  // The year doesn't matter for a birthday, so any year works for the picker.
-  const birthdayDate = birthday ? new Date(2000, birthday.month - 1, birthday.day) : null;
   const initial = name.trim()[0]?.toUpperCase();
 
   return (
@@ -114,22 +127,7 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
         </View>
 
         <FieldLabel>Your birthday (optional)</FieldLabel>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Choose your birthday"
-          onPress={() =>
-            picker.open('date', birthdayDate ?? new Date(2000, 0, 1), (d) =>
-              setBirthday({ month: d.getMonth() + 1, day: d.getDate() }),
-            )
-          }
-        >
-          <FieldBox>
-            <Text style={[styles.dateText, !birthdayDate && styles.placeholder]}>
-              {birthdayDate ? formatLongDate(birthdayDate) : 'DD / MM'}
-            </Text>
-            <Feather name="calendar" size={22} color={colors.blue} />
-          </FieldBox>
-        </Pressable>
+        <DateFields value={birthday} onPress={pickBirthday} />
 
         <View style={styles.note}>
           <Text style={styles.noteText}>We only use your number to send your wishes.</Text>
@@ -141,7 +139,7 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
         <BounceButton title={editing ? 'Save' : 'Continue'} onPress={save} />
         {!editing && <BounceButton title="Skip for now" variant="text" onPress={next} />}
       </View>
-      {picker.sheet}
+      {calendar.sheet}
     </SafeAreaView>
   );
 }
@@ -184,8 +182,6 @@ const styles = StyleSheet.create({
   codeBox: { width: 96 },
   numberBox: { flex: 1 },
   code: { fontFamily: fonts.body, fontSize: fontSizes.lg, color: colors.text },
-  dateText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.lg, color: colors.text },
-  placeholder: { color: colors.greyBlue },
   note: { backgroundColor: colors.blueMist, borderRadius: radius.card, padding: spacing.md, marginTop: spacing.xs },
   noteText: { ...type.body, textAlign: 'center' },
   footer: { paddingHorizontal: formPadding, paddingTop: spacing.xs, paddingBottom: spacing.xs },

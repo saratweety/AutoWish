@@ -123,8 +123,9 @@ const STICKERS: [string, string, string][] = [
   ['thumbs','Thumbs up', `<rect x="10" y="30" width="10" height="24" rx="3" fill="${C.blue}"/><path d="M22 54V30L32 10C38 10 40 14 38 22L36 28H50A5 5 0 0 1 55 34L50 50A6 6 0 0 1 44 54Z" fill="${C.yellow}"/>`],
 ];
 
-// Prices go up gently; the first item in each tab is free.
-const price = (i: number) => i < 1 ? 0 : 5 * Math.round((10 + i * 6 + i * i * 0.18) / 5);
+// The first item in each tab is free. The game can be replayed for stars as often as you like,
+// so prices are 4x the old gentle curve: 65 stars for the cheapest, 1,340 for the last.
+const price = (i: number) => i < 1 ? 0 : 5 * Math.round((10 + i * 6 + i * i * 0.18) * 4 / 5);
 
 export const GIFT_ITEMS: GiftItem[] = [
   { id: 'hat_none', t: 'hat', name: 'No hat', cost: 0, none: true },
@@ -143,11 +144,17 @@ export const FREE_ITEMS = GIFT_ITEMS.filter((i) => i.cost === 0).map((i) => i.id
 export type Equipped = Record<GiftKind, string>;
 export const DEFAULT_EQUIPPED: Equipped = { hat: 'hat_none', ribbon: 'rib_sky_solid', theme: 'card_pink_plain', sticker: 'st_none' };
 
-/** The whole dressed-up gift (ribbon + hat), viewBox "0 0 200 230". */
-export function dressedGiftSVG(equipped: Equipped) {
+/**
+ * The whole dressed-up gift (ribbon + hat), viewBox "0 0 200 230".
+ * `centered` crops to a square around what's drawn, for round frames: the gift alone spans
+ * about x 30-170, y 92-212; a hat can reach up to y 19, so with a hat the square is taller.
+ */
+export function dressedGiftSVG(equipped: Equipped, centered = false) {
   const rb = giftItem(equipped.ribbon) ?? giftItem(DEFAULT_EQUIPPED.ribbon)!;
   const hat = giftItem(equipped.hat);
-  return `<svg viewBox="0 0 200 230">${giftSVG(rb.r!, rb.kn!, rb.p)}${hat && !hat.none ? hat.svg : ''}</svg>`;
+  const hasHat = !!hat && !hat.none;
+  const viewBox = !centered ? '0 0 200 230' : hasHat ? '-15 0 230 230' : '25 77 150 150';
+  return `<svg viewBox="${viewBox}">${giftSVG(rb.r!, rb.kn!, rb.p)}${hasHat ? hat.svg : ''}</svg>`;
 }
 
 /** A grid tile or sheet picture for one item. */

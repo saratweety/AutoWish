@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { format } from 'date-fns';
 import React, { useState } from 'react';
@@ -41,13 +42,24 @@ export default function WishesScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title} accessibilityRole="header">
-          Scheduled Wishes
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} accessibilityRole="header">
+            Scheduled Wishes
+          </Text>
+          <View style={styles.countBadge} accessibilityLabel={`${saved.length} wishes in total`}>
+            <Text style={styles.countText}>{saved.length}</Text>
+          </View>
+        </View>
         {/* One line of filters; scrolls sideways on narrow phones instead of wrapping. */}
         <ChipScrollRow edge={screenPadding + spacing.xs}>
           {FILTERS.map((f) => (
-            <Chip key={f.key} label={f.label} compact selected={filter === f.key} onPress={() => setFilter(f.key)} />
+            <Chip
+              key={f.key}
+              label={f.key === 'all' ? `All (${saved.length})` : f.label}
+              compact
+              selected={filter === f.key}
+              onPress={() => setFilter(f.key)}
+            />
           ))}
         </ChipScrollRow>
 
@@ -80,9 +92,15 @@ export default function WishesScreen() {
             );
           })}
           {wishes.length === 0 && (
-            <Text style={styles.empty}>
-              {saved.length === 0 ? 'No wishes yet. Wishes you schedule will show up here.' : 'No wishes here.'}
-            </Text>
+            <View style={styles.emptyCard}>
+              <Feather name="message-circle" size={56} color={colors.blueMist} />
+              <Text style={styles.emptyTitle}>No wishes found</Text>
+              <Text style={styles.emptyText}>
+                {saved.length === 0
+                  ? 'Wishes you prepare for birthdays and anniversaries will appear here.'
+                  : 'No wishes match this filter. Try another one.'}
+              </Text>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -93,7 +111,17 @@ export default function WishesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: screenPadding + spacing.xs, paddingTop: spacing.xs, gap: spacing.md },
-  title: { ...type.h1, fontSize: 30 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  title: { ...type.h1, fontSize: 30, flexShrink: 1 },
+  countBadge: {
+    minWidth: 52,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.blueMist,
+    alignItems: 'center',
+  },
+  countText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textMuted },
   list: { gap: spacing.sm },
   card: {
     backgroundColor: colors.surface,
@@ -106,5 +134,17 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 2 },
   name: { fontFamily: fonts.headingSemiBold, fontSize: fontSizes.lg, color: colors.text },
   meta: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted },
-  empty: { ...type.bodyMuted, textAlign: 'center', marginTop: spacing.xl },
+  emptyCard: {
+    marginTop: spacing.xxl,
+    backgroundColor: colors.surface,
+    borderRadius: radius.cardLarge,
+    borderWidth: 1,
+    borderColor: colors.outline,
+    paddingVertical: spacing.xxl + spacing.md,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  emptyTitle: { ...type.h2, marginTop: spacing.md, textAlign: 'center' },
+  emptyText: { ...type.bodyMuted, textAlign: 'center', lineHeight: 22 },
 });

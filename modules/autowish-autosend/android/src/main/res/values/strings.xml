@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="autowish_autosend_label">AutoWish auto-send</string>
-  <string name="autowish_autosend_description">AutoWish uses this to send the WhatsApp wishes you schedule. At the time you picked, it opens the chat with your message and taps Send. It only works inside WhatsApp, only for wishes you scheduled, and does not read, save or share anything else on your screen.</string>
+  <string name="autowish_autosend_description">AutoWish uses this to send the WhatsApp wishes you schedule. At the time you picked, it opens the chat with your message and taps Send. It only works inside WhatsApp, only for wishes you scheduled, and does not read, save or share anything else on your screen.\n\nNote: AutoWish can only send a wish automatically while your phone is unlocked. If your phone is locked at the send time, the wish goes out as soon as you unlock it.</string>
 </resources>

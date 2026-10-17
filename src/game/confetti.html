@@ -253,7 +253,7 @@ h2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;mar
       </div>
       <button class="btn" id="home" type="button" style="margin-top:auto">Back to Home</button>
       <button class="btn secondary" id="dress" type="button">Dress up my gift</button>
-      <button class="textbtn" id="again" type="button" style="margin-top:-6px">Play again for fun</button>
+      <button class="textbtn" id="again" type="button" style="margin-top:-6px">Play again</button>
     </section>
 
     <!-- PAUSE SHEET -->
@@ -302,7 +302,7 @@ if (STICKERS.length){
   document.getElementById('stickerRule').hidden = false;
   document.getElementById('stickerRuleArt').innerHTML = STICKERS[0].svg;
 }
-// Stars come from the first game each day; more games are just for fun.
+// Every game earns stars. The first game of the day also counts toward the streak.
 const playedToday = () => store.get('last', null) === today();
 function streakNow(){
   const last = store.get('last', null), s = store.get('streak', 0);
@@ -313,8 +313,8 @@ function streakNow(){
 function refreshTags(){
   $('streakTag').textContent = `Day ${streakNow()} streak`; $('totalTag').textContent = store.get('total', 0);
   const done = playedToday();
-  $('introLead').textContent = done ? "You've caught today's stars. Play for fun, or come back tomorrow!" : 'Your daily gift is ready. Catch hearts for 30 seconds!';
-  $('start').textContent = done ? 'Play for fun' : 'Play';
+  $('introLead').textContent = done ? 'Play again to earn more stars. Catch hearts for 30 seconds!' : 'Your daily gift is ready. Catch hearts for 30 seconds!';
+  $('start').textContent = done ? 'Play again' : 'Play';
 }
 refreshTags();
 
@@ -423,7 +423,7 @@ function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList
    ========================================================= */
 const DURATION = 30;
 const CONFETTI_COLORS = ['#A9C1E6', '#FFB4B4', '#FFD961', '#789BD9', '#FDE3E4'];
-let forFun = false;
+let firstToday = true;
 let items = [], score = 0, hearts = 0, combo = 0, bestCombo = 0, timeLeft = DURATION, last = 0, spawnAcc = 0, running = false, paused = false, raf = 0, hurryShown = false;
 
 const heartSVG = gold => `<svg class="shape" width="${gold ? 46 : 42}" height="${gold ? 46 : 42}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" fill="${gold ? '#F2C94C' : '#EF7A70'}"/><path d="M8 8.5a2 2 0 0 1 2-1.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".75"/></svg>`;
@@ -524,7 +524,7 @@ function frame(t){
 }
 
 function start(){
-  forFun = playedToday();
+  firstToday = !playedToday();
   audio(); stopMusic(); show('count');
   let n = 3; $('countNum').textContent = n; sfx('count');
   const tick = () => {
@@ -549,10 +549,11 @@ function quit(){ $('scrim').classList.remove('show'); $('pause').classList.remov
 function end(){
   running = false; cancelAnimationFrame(raf); stopMusic(); sfx('end');
   items.forEach(i => i.el.remove()); items = [];
-  const streak = streakNow(), oldBest = store.get('best', 0), best = Math.max(oldBest, score), total = store.get('total', 0) + (forFun ? 0 : score);
+  const streak = streakNow(), oldBest = store.get('best', 0), best = Math.max(oldBest, score), total = store.get('total', 0) + score;
   store.set('best', best);
-  if (!forFun){ store.set('total', total); store.set('streak', streak); store.set('last', today()); }
-  $('resSmall').textContent = forFun ? 'just for fun today' : 'stars earned';
+  store.set('total', total);
+  if (firstToday){ store.set('streak', streak); store.set('last', today()); }
+  $('resSmall').textContent = 'stars earned';
   $('resScore').textContent = score; $('resHearts').textContent = hearts; $('resCombo').textContent = bestCombo; $('resStreak').textContent = streak;
   $('resTitle').textContent = score >= 30 ? 'Confetti champion!' : score >= 15 ? 'Great catch!' : 'Nice try!';
   $('newBest').classList.toggle('show', score > oldBest && score > 0);

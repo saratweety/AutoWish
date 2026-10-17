@@ -8,7 +8,7 @@ import { colors, fonts, fontSizes, radius, spacing, type } from '../theme';
 import { DressedGift } from './GiftArt';
 import { SlideInCard } from './SlideInCard';
 
-/** Home card for the daily Catch the Confetti game. Always has a Play button; after today's game it's for fun. */
+/** Home card for the daily Catch the Confetti game. Every game earns stars; replays are always allowed. */
 export function DailyGameCard() {
   const navigation = useNavigation();
   const { gift } = useApp();
@@ -18,18 +18,18 @@ export function DailyGameCard() {
     <SlideInCard>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={played ? 'Play Catch the Confetti for fun' : 'Play Catch the Confetti, your daily gift'}
+        accessibilityLabel={played ? 'Play Catch the Confetti again to earn more stars' : 'Play Catch the Confetti, your daily gift'}
         onPress={() => navigation.navigate('ConfettiGame')}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
         <View style={styles.giftCircle}>
-          <DressedGift equipped={gift.equipped} width={58} height={64} />
+          <DressedGift equipped={gift.equipped} width={46} height={46} centered />
         </View>
         <View style={styles.text}>
-          <Text style={styles.title}>{played ? "You caught today's stars" : 'Your daily gift is ready'}</Text>
+          <Text style={styles.title}>{played ? 'Keep catching stars' : 'Your daily gift is ready'}</Text>
           <Text style={type.bodyMuted} numberOfLines={2}>
             {played
-              ? 'Play again for fun, or spend your stars in My Gift.'
+              ? 'Play again to earn more, or spend your stars in My Gift.'
               : `Catch the Confetti · Day ${nextStreak(gift.lastPlayed, gift.streak)} streak`}
           </Text>
         </View>

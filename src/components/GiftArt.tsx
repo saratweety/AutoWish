@@ -4,8 +4,19 @@ import { SvgXml } from 'react-native-svg';
 import { cardPattern, dressedGiftSVG, giftItem, type Equipped, type GiftItem } from '../data/giftItems';
 
 /** The AutoWish gift wearing the chosen hat and ribbon. */
-export function DressedGift({ equipped, width, height }: { equipped: Equipped; width: number; height: number }) {
-  return <SvgXml xml={dressedGiftSVG(equipped)} width={width} height={height} />;
+export function DressedGift({
+  equipped,
+  width,
+  height,
+  centered,
+}: {
+  equipped: Equipped;
+  width: number;
+  height: number;
+  /** Square and centred on the gift (with or without a hat), for round frames. */
+  centered?: boolean;
+}) {
+  return <SvgXml xml={dressedGiftSVG(equipped, centered)} width={width} height={height} />;
 }
 
 /** One item's picture: a hat, ribbon, card or sticker. */

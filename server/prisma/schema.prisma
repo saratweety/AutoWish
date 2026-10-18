@@ -1,0 +1,101 @@
+// AutoWish database tables (CLAUDE.md section 14.3).
+//
+// Two kinds of time on every synced row:
+// - updatedAt: set by the PHONE when the user changes something. Used for the
+//   conflict rule "last change wins".
+// - syncedAt:  set by the SERVER every time the row is saved here. Used by
+//   GET /sync?since=... to find "what changed since you last asked". We use the
+//   server's clock for this, because a phone's clock can be wrong, and a phone
+//   with a slow clock would otherwise hide its changes from other phones.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id // the Clerk user id
+  email       String
+  name        String?
+  createdAt   DateTime     @default(now())
+  specialDays SpecialDay[]
+  wishes      Wish[]
+  settings    Settings?
+  giftState   GiftState?
+}
+
+model SpecialDay {
+  id               String    @id // id made on the phone, so rows created offline keep their id
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  phone            String
+  occasion         String
+  customOccasion   String?
+  month            Int
+  day              Int
+  year             Int?
+  relationship     String
+  photoUrl         String?
+  remindDaysBefore Int
+  reminderTime     String? // "HH:mm" for this person; empty = the default from Settings
+  sendTime         String? // "HH:mm" new wishes for this person go out at
+  createdAt        DateTime
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  syncedAt         DateTime  @default(now()) @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([userId, syncedAt])
+}
+
+model Wish {
+  id           String    @id
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialDayId String
+  text         String
+  tone         String
+  sendAtLocal  String // "2026-11-02T00:00" local wall-clock time, so 12:00 AM stays 12:00 AM in any time zone
+  status       String
+  sentAt       DateTime?
+  updatedAt    DateTime
+  deletedAt    DateTime?
+  syncedAt     DateTime  @default(now()) @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([userId, syncedAt])
+}
+
+model Settings {
+  userId                  String   @id
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userName                String?
+  userPhone               String?
+  userBirthday            Json? // { month, day, year? }
+  defaultSendTime         String // "00:00"
+  defaultRemindDaysBefore Int
+  reminderTimeOfDay       String // "10:00"
+  updatedAt               DateTime
+  syncedAt                DateTime @default(now()) @updatedAt
+}
+
+model GiftState {
+  // My Gift: stars, unlocked/equipped items, and the daily game's progress
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stars      Int
+  unlocked   Json // list of unlocked item ids, e.g. ["h01", "r04"]
+  equipped   Json // { hat, ribbon, theme, sticker }
+  best       Int      @default(0)
+  streak     Int      @default(0)
+  lastPlayed String? // "yyyy-MM-dd"
+  song       Int      @default(0)
+  sfx        Boolean  @default(true)
+  updatedAt  DateTime
+  syncedAt   DateTime @default(now()) @updatedAt
+}

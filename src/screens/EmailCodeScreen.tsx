@@ -5,6 +5,7 @@ import { loginErrorMessage } from '../auth/errors';
 import { useAfterLogin } from '../auth/useAfterLogin';
 import { useEmailCode } from '../auth/useEmailCode';
 import { BounceButton } from '../components/BounceButton';
+import { GettingReady } from '../components/GettingReady';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { RootScreenProps } from '../navigation/types';
 import { colors, fonts, fontSizes, formPadding, radius, spacing, type } from '../theme';
@@ -20,7 +21,7 @@ const RESEND_AFTER_S = 30;
 export default function EmailCodeScreen({ route }: RootScreenProps<'EmailCode'>) {
   const { email, flow } = route.params;
   const { verifyCode, resendCode } = useEmailCode();
-  const afterLogin = useAfterLogin();
+  const { afterLogin, gettingReady } = useAfterLogin();
   const input = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -121,6 +122,7 @@ export default function EmailCodeScreen({ route }: RootScreenProps<'EmailCode'>)
           />
         </View>
       </KeyboardAvoidingView>
+      {gettingReady && <GettingReady overlay />}
     </SafeAreaView>
   );
 }

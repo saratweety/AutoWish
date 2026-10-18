@@ -465,6 +465,8 @@ export type LocalStore = {
   read: () => LocalData;
   /** Saves merged data and reschedules notifications if anything changed. */
   write: (data: LocalData, changed: number) => Promise<void>;
+  /** Cancels all notifications and removes the account's data from the phone. */
+  clear: () => Promise<void>;
 };
 
 let store: LocalStore | null = null;
@@ -475,6 +477,21 @@ let session = 0;
 
 export function connectLocalStore(s: LocalStore) {
   store = s;
+}
+
+/** The phone's data right now (e.g. to check the user's name right after a login download). */
+export function localSnapshot() {
+  return store?.read();
+}
+
+// Resolves once the logged-in account's data is on this phone
+// (after the first download following a login, or straight away on app start).
+let markAccountReady: () => void = () => {};
+let accountReady = new Promise<void>((resolve) => (markAccountReady = resolve));
+
+/** Waits (at most timeoutMs) until the account's data has been downloaded to this phone. */
+export function whenAccountReady(timeoutMs = 20_000) {
+  return Promise.race([accountReady, new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))]);
 }
 
 /**
@@ -490,10 +507,19 @@ export async function setSyncUser(id: string | null) {
   if (!id) return;
   const owner = await AsyncStorage.getItem(KEYS.owner).catch(() => null);
   if (owner === id) {
+    markAccountReady();
     syncNow();
     return;
   }
+  if (owner && store) {
+    // The data on this phone belongs to ANOTHER account (its login ended without
+    // "Log out", e.g. it expired). Never upload it into this account: remove it.
+    outbox = emptyOutbox();
+    await saveOutbox();
+    await store.clear();
+  }
   await startAccountOnThisPhone(id);
+  markAccountReady();
 }
 
 async function startAccountOnThisPhone(id: string) {
@@ -608,6 +634,7 @@ export async function forgetAccount() {
   if (timer) clearTimeout(timer);
   timer = null;
   outbox = emptyOutbox();
+  accountReady = new Promise<void>((resolve) => (markAccountReady = resolve));
   await AsyncStorage.multiRemove(Object.values(KEYS)).catch(() => {});
   setStatus({ state: 'idle', savedAt: undefined, pending: 0, message: undefined, downloading: false, welcomeBack: false });
 }

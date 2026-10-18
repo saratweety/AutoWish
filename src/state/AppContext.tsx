@@ -119,8 +119,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // The sync engine (src/api/sync.ts) reads and writes the phone's data through here.
+  const clearAccountData = async () => {
+    // Cancel first, so a logged-out phone never reminds about someone.
+    await cancelAllNotifications();
+    const { onboardingDone, autoSend } = latest.current.settings;
+    const kept = { ...DEFAULT_SETTINGS, onboardingDone, autoSend };
+    commit.days(() => []);
+    commit.wishes(() => []);
+    commit.settings(kept);
+    commit.gift(DEFAULT_GIFT);
+    await storage.clearAccountData(kept);
+  };
   useEffect(() => {
     connectLocalStore({
+      clear: () => clearAccountData(),
       read: () => latest.current,
       write: async (data, changed) => {
         if (changed === 0) return;
@@ -295,16 +307,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       rescheduleNotifications: () =>
         rescheduleFrom(latest.current.specialDays, latest.current.wishes, latest.current.settings),
 
-      clearAccountData: async () => {
-        // Cancel first, so a logged-out phone never reminds about someone.
-        await cancelAllNotifications();
-        const { onboardingDone, autoSend } = latest.current.settings;
-        commit.days(() => []);
-        commit.wishes(() => []);
-        commit.settings({ ...DEFAULT_SETTINGS, onboardingDone, autoSend });
-        commit.gift(DEFAULT_GIFT);
-        await storage.clearAccountData({ ...DEFAULT_SETTINGS, onboardingDone, autoSend });
-      },
+      clearAccountData,
 
       resetAll: async () => {
         await cancelAllNotifications();

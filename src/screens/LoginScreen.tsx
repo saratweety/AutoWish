@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLottie } from '../components/AppLottie';
 import { BounceButton } from '../components/BounceButton';
 import { FieldLabel, TextField } from '../components/Field';
+import { GettingReady } from '../components/GettingReady';
 import { SlideUpSheet } from '../components/SlideUpSheet';
 import { loginConfigured, useAccount } from '../auth/AccountProvider';
 import { loginErrorMessage } from '../auth/errors';
@@ -61,7 +62,7 @@ function LoginLayout({ busy, error, onGoogle, onEmail, onGuest }: LayoutProps) {
 /** Login with Clerk: Google, or a code sent by email. */
 function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
   const { setGuest } = useAccount();
-  const afterLogin = useAfterLogin();
+  const { afterLogin, afterGuest, gettingReady } = useAfterLogin();
   const { startSSOFlow } = useSSO();
   const emailCode = useEmailCode();
   const [busy, setBusy] = useState(false);
@@ -118,7 +119,7 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
 
   const guest = async () => {
     await setGuest(true);
-    afterLogin();
+    afterGuest();
   };
 
   return (
@@ -148,6 +149,7 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
           <BounceButton title="Cancel" variant="text" onPress={() => setAskingEmail(false)} />
         </View>
       </SlideUpSheet>
+      {gettingReady && <GettingReady overlay />}
     </KeyboardAvoidingView>
   );
 }
@@ -155,7 +157,7 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
 /** Shown while the Clerk key isn't in .env yet: only "Use without an account" works. */
 function LoginNotSetUp() {
   const { setGuest } = useAccount();
-  const afterLogin = useAfterLogin();
+  const { afterGuest } = useAfterLogin();
   const [error, setError] = useState<string | null>(null);
   return (
     <LoginLayout
@@ -165,7 +167,7 @@ function LoginNotSetUp() {
       onEmail={() => setError(NOT_SET_UP)}
       onGuest={async () => {
         await setGuest(true);
-        afterLogin();
+        afterGuest();
       }}
     />
   );

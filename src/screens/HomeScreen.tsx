@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSyncStatus } from '../api/sync';
 import { useSyncRefresh } from '../api/useSyncRefresh';
 import { Avatar } from '../components/Avatar';
 import { CountdownBadge } from '../components/CountdownBadge';
@@ -10,6 +11,8 @@ import { HomeHeader } from '../components/HomeHeader';
 import { SlideInCard } from '../components/SlideInCard';
 import { TodayCard, todayTextColor } from '../components/TodayCard';
 import { DailyGameCard } from '../components/DailyGameCard';
+import { GettingReady } from '../components/GettingReady';
+import { WelcomeBackToast } from '../components/WelcomeBackToast';
 import { occasionName, possessiveOccasion, RELATIONSHIP_LABELS } from '../data/labels';
 import { daysUntil, formatTime } from '../services/dates';
 import { displayStatus, wishForNextDate } from '../services/wishes';
@@ -25,6 +28,7 @@ export default function HomeScreen() {
   const { specialDays, wishes, gift } = useApp();
   const todayText = todayTextColor(gift.equipped);
   const refreshControl = useSyncRefresh();
+  const { downloading } = useSyncStatus();
 
   // Anything tomorrow without a wish yet? Show the reminder pop-up (once per app open).
   useFocusEffect(
@@ -40,6 +44,15 @@ export default function HomeScreen() {
       navigation.navigate('Reminder', { specialDayId: due.id });
     }, [specialDays, wishes, navigation]),
   );
+
+  // Just logged in: the account's special days are on their way.
+  if (downloading && specialDays.length === 0) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <GettingReady />
+      </SafeAreaView>
+    );
+  }
 
   // A new user has nothing saved yet, so they see the empty state first.
   if (specialDays.length === 0) return <HomeEmptyScreen />;
@@ -131,6 +144,7 @@ export default function HomeScreen() {
       >
         <Feather name="plus" size={32} color={colors.text} />
       </Pressable>
+      <WelcomeBackToast />
     </SafeAreaView>
   );
 }

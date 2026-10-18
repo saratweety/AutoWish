@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
@@ -42,7 +43,14 @@ class AutoSendModule : Module() {
     Function("isServiceEnabled") { isServiceEnabled() }
 
     Function("openAccessibilitySettings") {
-      openSettingsPage(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+      // Android never lets an app switch its own accessibility service on, so we open the list
+      // for the user. These extras ask Settings to scroll to AutoWish and highlight it. Pixel,
+      // Samsung and many other phones support them; phones that don't just open the plain list.
+      val key = ComponentName(context, AutoSendAccessibilityService::class.java).flattenToString()
+      val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        .putExtra(":settings:fragment_args_key", key)
+        .putExtra(":settings:show_fragment_args", Bundle().apply { putString(":settings:fragment_args_key", key) })
+      openSettingsPage(intent)
     }
 
     Function("openAppInfo") {

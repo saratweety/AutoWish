@@ -24,7 +24,7 @@ const DISCLOSURE = [
   'At the time you schedule, AutoWish opens the WhatsApp chat with your wish and taps Send for you.',
   "To do this it uses Android's Accessibility service. It only works inside WhatsApp, and only for wishes you scheduled.",
   "It doesn't read, save or share your chats or anything else on your screen. Nothing leaves your phone.",
-  "If your phone is locked at the send time, AutoWish sends it as soon as you unlock your phone.",
+  "Wishes only send automatically when your phone is unlocked. If it's locked at the send time, you'll get a notification instead. Tap it to send the wish yourself, or just unlock your phone.",
 ];
 
 /** A numbered list of short instructions. */
@@ -175,7 +175,7 @@ export default function AutoSendSetupScreen({ navigation }: RootScreenProps<'Aut
           <AppLottie source={require('../../assets/animations/autowish_success.json')} style={styles.success} />
           <Text style={[type.h2, styles.textCenter]}>Auto-send is on!</Text>
           <Text style={[type.bodyMuted, styles.textCenter]}>
-            Your scheduled wishes will go out on WhatsApp by themselves. If your phone is locked at that time, they go out as soon as you unlock it.
+            {"Your scheduled wishes will go out on WhatsApp by themselves. If your phone is locked at that time, you'll get a notification to tap instead."}
           </Text>
           <BounceButton title="Send a test to myself" onPress={sendTest} style={styles.stretch} />
           {testNote && <Text style={[type.caption, styles.textCenter]}>{testNote}</Text>}

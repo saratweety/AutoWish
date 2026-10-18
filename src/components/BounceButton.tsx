@@ -18,9 +18,10 @@ type Props = {
   onPress?: () => void;
   /**
    * primary = orange pill (Write Wish, Schedule Wish); secondary = white pill with an outline
-   * (Continue with Google); text = quiet grey button; link = blue text button
+   * (Continue with Google); text = quiet grey button; link = blue text button;
+   * danger = soft red text button (Delete account)
    */
-  variant?: 'primary' | 'secondary' | 'text' | 'link';
+  variant?: 'primary' | 'secondary' | 'text' | 'link' | 'danger';
   /** Shown before the title, e.g. the Google logo. */
   icon?: React.ReactNode;
   /** small = compact pill, e.g. the "Allow" buttons */
@@ -87,5 +88,7 @@ const styles = StyleSheet.create({
   secondaryLabel: { color: colors.text, fontSize: fontSizes.md, fontFamily: fonts.bodyExtraBold },
   textLabel: { color: colors.textMuted, fontSize: fontSizes.md, fontFamily: fonts.bodyBold },
   linkLabel: { color: colors.blueDark, fontSize: fontSizes.md, fontFamily: fonts.bodyExtraBold },
+  // Large and extra bold, so the soft red stays readable.
+  dangerLabel: { color: colors.danger, fontSize: fontSizes.lg, fontFamily: fonts.bodyExtraBold },
   smallLabel: { fontSize: fontSizes.sm },
 });

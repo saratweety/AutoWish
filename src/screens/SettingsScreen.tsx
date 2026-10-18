@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAccountSection } from '../components/AccountCard';
 import { BounceButton } from '../components/BounceButton';
 import { Chip, ChipRow } from '../components/Chip';
 import { useClockSheet } from '../components/ClockSheet';
@@ -12,6 +13,8 @@ import { makeSampleData } from '../data/sample';
 import { autoSendStatus, autoSendSupported } from '../services/autoSend';
 import { formatClock } from '../services/dates';
 import { sendTestNotification } from '../services/notifications';
+import { forgetAccount } from '../api/sync';
+import { useAccount } from '../auth/AccountProvider';
 import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, touchTarget, type } from '../theme';
 
@@ -55,6 +58,8 @@ export default function SettingsScreen() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [choosingReminder, setChoosingReminder] = useState(false);
   const clock = useClockSheet();
+  const account = useAccountSection();
+  const { signedIn, signOut } = useAccount();
 
   // Auto-send status, checked again whenever Settings is shown or the app returns from a settings page.
   const [autoStatus, setAutoStatus] = useState(autoSendStatus);
@@ -104,7 +109,10 @@ export default function SettingsScreen() {
   // Wipes everything and replays the first launch: Splash, Onboarding, then the empty Home.
   const startFresh = async () => {
     setConfirmReset(false);
+    // Also logs out (the account's data on the server is kept).
+    await forgetAccount();
     await resetAll();
+    await signOut().catch(() => {});
     navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
   };
 
@@ -114,6 +122,8 @@ export default function SettingsScreen() {
         <Text style={styles.title} accessibilityRole="header">
           Settings
         </Text>
+
+        {account.card}
 
         {autoSendSupported && (
           <Pressable
@@ -143,8 +153,17 @@ export default function SettingsScreen() {
         <View style={styles.privacyCard}>
           <Image source={require('../../assets/icon.png')} style={styles.gift} accessibilityIgnoresInvertColors />
           <View style={styles.privacyText}>
-            <Text style={type.h3}>Everything stays on your phone</Text>
-            <Text style={styles.privacyBody}>No account, no server. Your dates and wishes never leave this phone.</Text>
+            {signedIn ? (
+              <>
+                <Text style={type.h3}>Saved privately</Text>
+                <Text style={styles.privacyBody}>Your special days are saved privately to your account so you never lose them.</Text>
+              </>
+            ) : (
+              <>
+                <Text style={type.h3}>Everything stays on your phone</Text>
+                <Text style={styles.privacyBody}>No account, no server. Your dates and wishes never leave this phone.</Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -198,6 +217,8 @@ export default function SettingsScreen() {
             <Row label="Start fresh (delete everything)" onPress={() => setConfirmReset(true)} last />
           </Section>
         )}
+
+        {account.deleteButton}
       </ScrollView>
 
       <SlideUpSheet visible={choosingReminder} onClose={() => setChoosingReminder(false)}>
@@ -234,6 +255,7 @@ export default function SettingsScreen() {
         </View>
       </SlideUpSheet>
       {clock.sheet}
+      {account.sheets}
     </SafeAreaView>
   );
 }

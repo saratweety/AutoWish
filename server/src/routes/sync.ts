@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { currentUserId, ensureUserRow } from '../lib/auth';
+import { deletePhoto } from '../lib/photoStore';
 import { prisma } from '../lib/prisma';
 import {
   describeError,
@@ -78,6 +79,8 @@ async function saveRow(
 
 async function saveSpecialDay(userId: string, row: SpecialDayInput): Promise<SaveResult> {
   const updatedAt = new Date(row.updatedAt);
+  // A photo must be one of this user's own uploads (rule 1: never point at someone else's).
+  const photoUrl = row.photoUrl?.startsWith(`/photos/${userId}/`) ? row.photoUrl : null;
   const data = {
     name: row.name,
     phone: row.phone,
@@ -87,7 +90,7 @@ async function saveSpecialDay(userId: string, row: SpecialDayInput): Promise<Sav
     day: row.day,
     year: row.year ?? null,
     relationship: row.relationship,
-    photoUrl: row.photoUrl ?? null,
+    photoUrl,
     remindDaysBefore: row.remindDaysBefore,
     reminderTime: row.reminderTime ?? null,
     sendTime: row.sendTime ?? null,
@@ -98,15 +101,18 @@ async function saveSpecialDay(userId: string, row: SpecialDayInput): Promise<Sav
   };
   const existing = await prisma.specialDay.findUnique({
     where: { id: row.id },
-    select: { userId: true, updatedAt: true },
+    select: { userId: true, updatedAt: true, photoUrl: true },
   });
-  return saveRow(
+  const result = await saveRow(
     existing,
     userId,
     updatedAt,
     () => prisma.specialDay.create({ data: { id: row.id, userId, ...data } }),
     () => prisma.specialDay.updateMany({ where: { id: row.id, userId, updatedAt: { lt: updatedAt } }, data }),
   );
+  // The photo was replaced: the old file is no longer needed.
+  if (result === 'saved' && existing?.photoUrl && existing.photoUrl !== photoUrl) await deletePhoto(existing.photoUrl);
+  return result;
 }
 
 async function saveWish(userId: string, row: WishInput): Promise<SaveResult> {

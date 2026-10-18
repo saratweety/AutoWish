@@ -4,8 +4,10 @@ import express, { type ErrorRequestHandler } from 'express';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { requireUser } from './lib/auth';
+import { deletePhoto } from './lib/photoStore';
 import { prisma } from './lib/prisma';
 import { meRouter } from './routes/me';
+import { photosRouter } from './routes/photos';
 import { syncRouter } from './routes/sync';
 
 const app = express();
@@ -28,6 +30,22 @@ app.get('/health', (_req, res) => {
 // Reads the Clerk login token from the "Authorization: Bearer ..." header.
 app.use(clerkMiddleware());
 
+const isPhotoDownload = (req: express.Request) => req.method === 'GET' && req.path.startsWith('/photos/');
+const rateKey = (req: express.Request) => getAuth(req).userId ?? ipKeyGenerator(req.ip ?? '');
+
+// Showing a list of people downloads one photo each, so photo downloads get their own, bigger limit.
+app.use(
+  rateLimit({
+    windowMs: 60_000,
+    limit: 600,
+    skip: (req) => !isPhotoDownload(req),
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: rateKey,
+    message: { error: 'Too many requests. Please wait a minute and try again.' },
+  }),
+);
+
 // About 60 requests per minute per user (per IP address before login).
 app.use(
   rateLimit({
@@ -35,7 +53,8 @@ app.use(
     limit: 60,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    keyGenerator: (req) => getAuth(req).userId ?? ipKeyGenerator(req.ip ?? ''),
+    skip: isPhotoDownload,
+    keyGenerator: rateKey,
     message: { error: 'Too many requests. Please wait a minute and try again.' },
   }),
 );
@@ -44,6 +63,7 @@ app.use(
 app.use(requireUser);
 app.use(meRouter);
 app.use(syncRouter);
+app.use(photosRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -71,7 +91,9 @@ async function cleanUpDeletedRows() {
   const before = new Date(Date.now() - 30 * DAY_MS);
   try {
     await prisma.wish.deleteMany({ where: { deletedAt: { lt: before } } });
-    await prisma.specialDay.deleteMany({ where: { deletedAt: { lt: before } } });
+    const old = await prisma.specialDay.findMany({ where: { deletedAt: { lt: before } }, select: { id: true, photoUrl: true } });
+    for (const day of old) await deletePhoto(day.photoUrl);
+    await prisma.specialDay.deleteMany({ where: { id: { in: old.map((d) => d.id) } } });
   } catch (error) {
     console.error('Cleanup failed', error);
   }

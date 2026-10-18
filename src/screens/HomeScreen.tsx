@@ -118,7 +118,7 @@ export default function HomeScreen() {
               onPress={() => navigation.navigate('AddSpecialDay', { specialDayId: day.id })}
             >
               <SlideInCard index={index + today.length} style={styles.card}>
-                <Avatar name={day.name} photoUri={day.photoUri} />
+                <Avatar name={day.name} photoUri={day.photoUri} photoUrl={day.photoUrl} />
                 <View style={styles.cardText}>
                   <Text style={styles.name} numberOfLines={1}>
                     {day.name}

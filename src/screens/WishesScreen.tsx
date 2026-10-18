@@ -79,7 +79,7 @@ export default function WishesScreen() {
                 onPress={edit}
               >
                 <SlideInCard index={index} style={styles.card}>
-                  <Avatar name={day.name} photoUri={day.photoUri} />
+                  <Avatar name={day.name} photoUri={day.photoUri} photoUrl={day.photoUrl} />
                   <View style={styles.cardText}>
                     <Text style={styles.name} numberOfLines={1}>
                       {day.name}

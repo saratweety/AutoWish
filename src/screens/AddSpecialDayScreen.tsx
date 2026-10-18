@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePhotoSource } from '../api/photos';
 import { BounceButton } from '../components/BounceButton';
 import { Chip, ChipRow, ChipScrollRow } from '../components/Chip';
 import { useCalendarSheet } from '../components/CalendarSheet';
@@ -46,6 +47,8 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
   const calendar = useCalendarSheet();
 
   const [photoUri, setPhotoUri] = useState(existing?.photoUri);
+  // A photo saved on the account by another phone shows until a new one is picked.
+  const photo = usePhotoSource(photoUri, existing?.photoUrl);
   const [name, setName] = useState(existing?.name ?? '');
   // The number as typed, without the country code.
   const [phone, setPhone] = useState(existing?.phone.replace(new RegExp(`^${COUNTRY_CODE}`), '') ?? '');
@@ -141,6 +144,9 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
       year: picked.year,
       relationship,
       photoUri,
+      // Kept as they are; sync uploads a newly picked photo and updates photoUrl.
+      photoUrl: existing?.photoUrl,
+      photoUploadedFrom: existing?.photoUploadedFrom,
       remindDaysBefore: remind,
       reminderTime,
       // No send time row here any more: keep one saved earlier, else wishes use the default from Settings.
@@ -163,8 +169,8 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Pressable accessibilityRole="button" accessibilityLabel="Choose a photo" onPress={pickPhoto} style={styles.photo}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photoImage} />
+          {photo ? (
+            <Image source={photo} style={styles.photoImage} />
           ) : (
             <Feather name="camera" size={30} color={colors.text} />
           )}

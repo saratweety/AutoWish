@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { useSyncExternalStore } from 'react';
 import type { GiftState, Settings, SpecialDay, Wish } from '../types';
 import { api, ApiError } from './client';
+import { uploadPhoto } from './photos';
 
 // ---------- What the server sends and receives (server/src/lib/validate.ts) ----------
 
@@ -463,8 +464,8 @@ export function clearWelcomeBack() {
 export type LocalStore = {
   /** The phone's data right now. */
   read: () => LocalData;
-  /** Saves merged data and reschedules notifications if anything changed. */
-  write: (data: LocalData, changed: number) => Promise<void>;
+  /** Saves merged data and (unless reschedule is false) reschedules notifications if anything changed. */
+  write: (data: LocalData, changed: number, reschedule?: boolean) => Promise<void>;
   /** Cancels all notifications and removes the account's data from the phone. */
   clear: () => Promise<void>;
 };
@@ -590,12 +591,49 @@ export function syncNow(): Promise<void> {
   return running;
 }
 
+// Photos that failed to upload for a reason other than the internet (e.g. the file is gone).
+// Not retried until the app restarts, so they don't slow down every sync.
+const failedPhotos = new Set<string>();
+
+/**
+ * Uploads photos picked on this phone that the account doesn't have yet
+ * (photoUri changed since photoUploadedFrom), then saves the new photoUrl on the
+ * special day and puts it in the outbox. A photo that can't upload never stops the
+ * rest of the sync: the person just shows their initial on other phones for now.
+ */
+async function uploadPendingPhotos(box: Outbox, mySession: number) {
+  if (!store) return;
+  const waiting = store.read().specialDays.filter((d) => d.photoUri && d.photoUri !== d.photoUploadedFrom && !failedPhotos.has(d.photoUri));
+  for (const day of waiting) {
+    const localUri = day.photoUri as string;
+    let photoUrl: string | null;
+    try {
+      photoUrl = await uploadPhoto(localUri);
+    } catch (error) {
+      if (error instanceof ApiError && (error.kind === 'offline' || error.kind === 'timeout')) return; // try next sync
+      failedPhotos.add(localUri);
+      continue;
+    }
+    if (!photoUrl) return; // photo storage isn't set up on the server
+    if (mySession !== session) return;
+    const now = store.read();
+    const current = now.specialDays.find((d) => d.id === day.id);
+    if (!current || current.photoUri !== localUri) continue; // changed or deleted meanwhile
+    const updated: SpecialDay = { ...current, photoUrl, photoUploadedFrom: localUri, updatedAt: new Date().toISOString() };
+    await store.write({ ...now, specialDays: now.specialDays.map((d) => (d.id === day.id ? updated : d)) }, 1, false);
+    if (box.days[day.id] === undefined || box.days[day.id] === true) box.days[day.id] = true;
+  }
+  await saveOutbox();
+}
+
 async function syncOnce() {
   if (!userId || !store) return;
   const mySession = session;
   const box = await getOutbox();
   setStatus({ state: 'saving', pending: outboxSize(box) });
   try {
+    await uploadPendingPhotos(box, mySession);
+    if (mySession !== session) return;
     const lastSyncedAt = await AsyncStorage.getItem(KEYS.lastSyncedAt);
     const changes = buildChanges(box, store.read());
     const hasChanges = outboxSize(box) > 0;

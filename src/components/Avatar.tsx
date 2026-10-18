@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { usePhotoSource } from '../api/photos';
 import { colors, fonts } from '../theme';
 
 const FILLS = [colors.pink, colors.pinkLight, colors.blueMist, colors.yellow, colors.blueLight];
@@ -17,11 +18,13 @@ function fillFor(name: string) {
   return FILLS[sum % FILLS.length];
 }
 
-type Props = { name: string; photoUri?: string; size?: number };
+/** photoUri = a photo file on this phone; photoUrl = the same person's photo saved on our server. */
+type Props = { name: string; photoUri?: string; photoUrl?: string; size?: number };
 
-export function Avatar({ name, photoUri, size = 52 }: Props) {
+export function Avatar({ name, photoUri, photoUrl, size = 52 }: Props) {
   const shape = { width: size, height: size, borderRadius: size / 2 };
-  if (photoUri) return <Image source={{ uri: photoUri }} style={shape} accessibilityLabel={name} />;
+  const source = usePhotoSource(photoUri, photoUrl);
+  if (source) return <Image source={source} style={shape} accessibilityLabel={name} />;
 
   return (
     <View style={[styles.circle, shape, { backgroundColor: fillFor(name) }]} accessibilityLabel={name}>

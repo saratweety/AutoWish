@@ -44,6 +44,12 @@ export function setTokenGetter(getter: () => Promise<string | null>) {
   getToken = getter;
 }
 
+/** The login header for things that load by themselves, like photos. null when logged out. */
+export async function authHeaders(): Promise<Record<string, string> | null> {
+  const token = await getToken().catch(() => null);
+  return token ? { Authorization: `Bearer ${token}` } : null;
+}
+
 type Options = {
   method?: 'GET' | 'POST' | 'DELETE';
   /** Sent as JSON. */

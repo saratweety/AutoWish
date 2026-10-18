@@ -1,6 +1,7 @@
 import { clerkClient } from '@clerk/express';
 import { Router } from 'express';
 import { currentUserId, forgetUser, upsertUserFromClerk } from '../lib/auth';
+import { deleteAllPhotos } from '../lib/photoStore';
 import { prisma } from '../lib/prisma';
 
 export const meRouter = Router();
@@ -20,6 +21,7 @@ meRouter.delete('/me', async (_req, res) => {
   // so the app can safely try again if something below fails.
   await prisma.user.deleteMany({ where: { id: userId } });
   forgetUser(userId);
+  await deleteAllPhotos(userId);
   try {
     await clerkClient.users.deleteUser(userId);
   } catch (error) {

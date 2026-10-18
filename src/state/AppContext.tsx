@@ -134,7 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     connectLocalStore({
       clear: () => clearAccountData(),
       read: () => latest.current,
-      write: async (data, changed) => {
+      write: async (data, changed, reschedule = true) => {
         if (changed === 0) return;
         commit.days(() => data.specialDays);
         commit.wishes(() => data.wishes);
@@ -143,7 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Something arrived from the account (maybe from another phone, or a whole
         // account after logging in): schedule this phone's reminders and wishes again.
         // Wishes whose time has passed are not scheduled; they show as "Not sent".
-        await rescheduleFrom(data.specialDays, data.wishes, data.settings).catch(() => {});
+        if (reschedule) await rescheduleFrom(data.specialDays, data.wishes, data.settings).catch(() => {});
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

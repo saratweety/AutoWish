@@ -17,7 +17,7 @@ import type { RootScreenProps } from '../navigation/types';
 import { formatShortDate, formatTime, nextOccurrence, withTime } from '../services/dates';
 import { newId, useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, type } from '../theme';
-import type { SpecialDay, Tone, Wish } from '../types';
+import type { SpecialDay, Tone, Wish, WishInput } from '../types';
 
 const TONES: Tone[] = ['funny', 'emotional', 'formal', 'urdu'];
 const PLANE_MS = 1500;
@@ -52,7 +52,7 @@ type FormProps = {
   day: SpecialDay;
   existing?: Wish;
   defaultSendTime: string;
-  onSave: (wish: Wish) => void;
+  onSave: (wish: WishInput) => void;
   navigation: RootScreenProps<'WriteWish'>['navigation'];
 };
 

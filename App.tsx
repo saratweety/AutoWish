@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SyncManager } from './src/api/SyncManager';
 import { AccountProvider } from './src/auth/AccountProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { setUpNotificationDisplay } from './src/services/notifications';
@@ -29,6 +30,7 @@ export default function App() {
     <SafeAreaProvider>
       <AccountProvider>
         <AppProvider>
+          <SyncManager />
           <RootNavigator />
         </AppProvider>
       </AccountProvider>

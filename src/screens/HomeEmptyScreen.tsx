@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSyncRefresh } from '../api/useSyncRefresh';
 import { AppLottie } from '../components/AppLottie';
 import { BounceButton } from '../components/BounceButton';
 import { colors, screenPadding, spacing, type } from '../theme';
@@ -10,11 +11,12 @@ import { HomeHeader } from '../components/HomeHeader';
 
 // Shown inside the Home tab when no special days are saved.
 export default function HomeEmptyScreen() {
+  const refreshControl = useSyncRefresh();
   const navigation = useNavigation();
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} refreshControl={refreshControl}>
         <HomeHeader />
         <View style={styles.center}>
           <View style={styles.circle}>

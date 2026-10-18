@@ -24,13 +24,17 @@ export interface SpecialDay {
   day: number; // 1-31
   year?: number;
   relationship: Relationship;
-  photoUri?: string;
+  photoUri?: string; // LOCAL ONLY: the photo file on this phone
+  photoUrl?: string; // the photo saved on our server ("/photos/..."), so other phones can show it
+  photoUploadedFrom?: string; // LOCAL ONLY: which photoUri photoUrl was made from
   remindDaysBefore: RemindDays;
   reminderTime?: string; // "HH:mm" for this person; not set = use the default from Settings
   sendTime?: string; // "HH:mm" new wishes for this person go out at; not set = the default from Settings
-  reminderNotificationId?: string;
-  remindLaterAt?: string; // set by "Remind me later": the next reminder comes at this time instead
+  reminderNotificationId?: string; // LOCAL ONLY, never synced (see 14.4)
+  remindLaterAt?: string; // LOCAL ONLY. Set by "Remind me later": the next reminder comes at this time instead
   createdAt: string;
+  updatedAt: string; // ISO, set on every change, used for sync ("last change wins")
+  deletedAt?: string; // soft delete, so other phones learn about deletions
 }
 
 export interface Wish {
@@ -38,23 +42,30 @@ export interface Wish {
   specialDayId: string;
   text: string;
   tone: Tone;
-  sendAt: string; // ISO date-time
+  sendAt: string; // ISO date-time (the server keeps it as local wall-clock time, see src/api/sync.ts)
   status: WishStatus;
-  notificationId?: string;
-  earlyNotificationId?: string; // the heads-up 5 minutes before
+  notificationId?: string; // LOCAL ONLY, never synced
+  earlyNotificationId?: string; // LOCAL ONLY. The heads-up 5 minutes before
   sentAt?: string;
+  updatedAt: string;
+  deletedAt?: string;
 }
+
+/** A special day or wish before AppContext stamps its updatedAt. */
+export type SpecialDayInput = Omit<SpecialDay, 'updatedAt' | 'deletedAt'> & { updatedAt?: string };
+export type WishInput = Omit<Wish, 'updatedAt' | 'deletedAt'> & { updatedAt?: string };
 
 export interface Settings {
   userName?: string;
   userPhone?: string; // the user's own WhatsApp number, digits only with country code
-  userPhotoUri?: string;
+  userPhotoUri?: string; // LOCAL ONLY
   userBirthday?: { month: number; day: number; year?: number };
   defaultSendTime: string; // "00:00"
   defaultRemindDaysBefore: RemindDays;
   reminderTimeOfDay: string; // "10:00"
-  onboardingDone: boolean;
-  autoSend: boolean; // Android: send scheduled wishes on WhatsApp automatically
+  onboardingDone: boolean; // LOCAL ONLY (per phone)
+  autoSend: boolean; // LOCAL ONLY. Android: send scheduled wishes on WhatsApp automatically
+  updatedAt: string; // when a synced setting last changed
 }
 
 /** My Gift and the daily Catch the Confetti game. */
@@ -67,4 +78,5 @@ export interface GiftState {
   lastPlayed?: string; // "yyyy-MM-dd", the last day the game gave stars
   song: number; // game music: 0, 1, 2, or -1 for none
   sfx: boolean; // game sound effects
+  updatedAt: string;
 }

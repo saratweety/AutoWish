@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSyncRefresh } from '../api/useSyncRefresh';
 import { Avatar } from '../components/Avatar';
 import { CountdownBadge } from '../components/CountdownBadge';
 import { HomeHeader } from '../components/HomeHeader';
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const { specialDays, wishes, gift } = useApp();
   const todayText = todayTextColor(gift.equipped);
+  const refreshControl = useSyncRefresh();
 
   // Anything tomorrow without a wish yet? Show the reminder pop-up (once per app open).
   useFocusEffect(
@@ -49,7 +51,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} refreshControl={refreshControl}>
         <HomeHeader />
 
         {today.map((day) => {

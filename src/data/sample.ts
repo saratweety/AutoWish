@@ -3,9 +3,9 @@
 import { addDays, startOfDay, subDays } from 'date-fns';
 import { newId } from '../state/AppContext';
 import { nextOccurrence } from '../services/dates';
-import type { SpecialDay, Wish } from '../types';
+import type { SpecialDayInput, WishInput } from '../types';
 
-export function makeSampleData(): { days: SpecialDay[]; wishes: Wish[] } {
+export function makeSampleData(): { days: SpecialDayInput[]; wishes: WishInput[] } {
   const today = startOfDay(new Date());
   const created = new Date().toISOString();
 
@@ -15,7 +15,7 @@ export function makeSampleData(): { days: SpecialDay[]; wishes: Wish[] } {
     return { month: d.getMonth() + 1, day: d.getDate() };
   };
 
-  const person = (name: string, rest: Omit<SpecialDay, 'id' | 'name' | 'phone' | 'createdAt'>): SpecialDay => ({
+  const person = (name: string, rest: Omit<SpecialDayInput, 'id' | 'name' | 'phone' | 'createdAt'>): SpecialDayInput => ({
     id: newId(),
     name,
     phone: '923001234567',
@@ -30,7 +30,7 @@ export function makeSampleData(): { days: SpecialDay[]; wishes: Wish[] } {
   const zainab = person('Zainab', { occasion: 'birthday', ...inDays(-14), relationship: 'colleague', remindDaysBefore: 1 });
   const usman = person('Usman', { occasion: 'birthday', ...inDays(-18), relationship: 'friend', remindDaysBefore: 1 });
 
-  const wish = (day: SpecialDay, rest: Omit<Wish, 'id' | 'specialDayId'>): Wish => ({ id: newId(), specialDayId: day.id, ...rest });
+  const wish = (day: SpecialDayInput, rest: Omit<WishInput, 'id' | 'specialDayId'>): WishInput => ({ id: newId(), specialDayId: day.id, ...rest });
 
   return {
     days: [ahmed, parents, sara, abbu, zainab, usman],

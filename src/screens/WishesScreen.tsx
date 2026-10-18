@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSyncRefresh } from '../api/useSyncRefresh';
 import { Avatar } from '../components/Avatar';
 import { Chip, ChipScrollRow } from '../components/Chip';
 import { SlideInCard } from '../components/SlideInCard';
@@ -28,6 +29,7 @@ export default function WishesScreen() {
   const { specialDays, wishes: saved } = useApp();
   const [filter, setFilter] = useState<Filter>('all');
   const sendWish = useSendWish();
+  const refreshControl = useSyncRefresh();
 
   // Scheduled wishes first (soonest at the top), then missed ones, then sent (newest first).
   const ORDER: Record<WishStatus, number> = { scheduled: 0, not_sent: 1, sent: 2 };
@@ -41,7 +43,7 @@ export default function WishesScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} refreshControl={refreshControl}>
         <View style={styles.titleRow}>
           <Text style={styles.title} accessibilityRole="header">
             Scheduled Wishes

@@ -10,6 +10,11 @@ const KEYS = {
   gift: 'autowish.gift',
 } as const;
 
+// Per-phone flags, kept when someone logs out.
+const PHONE_KEYS = {
+  guest: 'autowish.account.guest', // chose "Use without an account"
+} as const;
+
 export const DEFAULT_SETTINGS: Settings = {
   defaultSendTime: '00:00',
   defaultRemindDaysBefore: 1,
@@ -51,5 +56,7 @@ export const storage = {
   saveSettings: (settings: Settings) => save(KEYS.settings, settings),
   loadGift: async () => ({ ...DEFAULT_GIFT, ...(await load<Partial<GiftState>>(KEYS.gift, {})) }),
   saveGift: (gift: GiftState) => save(KEYS.gift, gift),
-  clearAll: () => AsyncStorage.multiRemove(Object.values(KEYS)),
+  loadGuest: () => load<boolean>(PHONE_KEYS.guest, false),
+  saveGuest: (guest: boolean) => save(PHONE_KEYS.guest, guest),
+  clearAll: () => AsyncStorage.multiRemove([...Object.values(KEYS), ...Object.values(PHONE_KEYS)]),
 };

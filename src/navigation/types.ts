@@ -12,6 +12,8 @@ export type TabParamList = {
 export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
+  Login: undefined; // "Welcome to AutoWish": after onboarding, and whenever logged out
+  EmailCode: { email: string; flow: 'signIn' | 'signUp' }; // the 6-digit code from the email
   AboutYou: { editing?: boolean } | undefined; // editing = opened from Home/Settings, not during setup
   Permissions: undefined;
   Main: NavigatorScreenParams<TabParamList> | undefined;

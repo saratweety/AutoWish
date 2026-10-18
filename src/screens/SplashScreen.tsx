@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useAccount } from '../auth/AccountProvider';
 import { AppLottie } from '../components/AppLottie';
 import type { RootScreenProps } from '../navigation/types';
 import { useApp } from '../state/AppContext';
@@ -10,6 +11,7 @@ const DOTS = [colors.heart, colors.pink, colors.blueLight, colors.yellow];
 
 export default function SplashScreen({ navigation }: RootScreenProps<'Splash'>) {
   const { ready, settings } = useApp();
+  const account = useAccount();
   const [played, setPlayed] = useState(false);
 
   useEffect(() => {
@@ -17,12 +19,15 @@ export default function SplashScreen({ navigation }: RootScreenProps<'Splash'>) 
     return () => clearTimeout(timer);
   }, []);
 
-  // Once the animation has played and saved data is loaded:
-  // first launch goes to Onboarding, otherwise straight to Home.
+  // Once the animation has played, saved data is loaded and we know who is logged in:
+  // first launch goes to Onboarding; logged in (or using it without an account) goes
+  // straight to Home; logged out goes to Login.
+  const loggedInOrGuest = account.signedIn || account.guest;
   useEffect(() => {
-    if (!played || !ready) return;
-    navigation.reset({ index: 0, routes: [{ name: settings.onboardingDone ? 'Main' : 'Onboarding' }] });
-  }, [played, ready, settings.onboardingDone, navigation]);
+    if (!played || !ready || !account.loaded) return;
+    const next = !settings.onboardingDone ? 'Onboarding' : loggedInOrGuest ? 'Main' : 'Login';
+    navigation.reset({ index: 0, routes: [{ name: next }] });
+  }, [played, ready, account.loaded, loggedInOrGuest, settings.onboardingDone, navigation]);
 
   return (
     <View style={styles.screen}>

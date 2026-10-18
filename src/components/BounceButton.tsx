@@ -16,8 +16,13 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = {
   title: string;
   onPress?: () => void;
-  /** primary = orange pill (Write Wish, Schedule Wish); text = quiet grey button; link = blue text button */
-  variant?: 'primary' | 'text' | 'link';
+  /**
+   * primary = orange pill (Write Wish, Schedule Wish); secondary = white pill with an outline
+   * (Continue with Google); text = quiet grey button; link = blue text button
+   */
+  variant?: 'primary' | 'secondary' | 'text' | 'link';
+  /** Shown before the title, e.g. the Google logo. */
+  icon?: React.ReactNode;
   /** small = compact pill, e.g. the "Allow" buttons */
   size?: 'regular' | 'small';
   disabled?: boolean;
@@ -27,7 +32,7 @@ type Props = {
 };
 
 /** Shrinks to 95% when pressed and springs back with a tiny bounce. */
-export function BounceButton({ title, onPress, variant = 'primary', size = 'regular', disabled, accessibilityLabel, style }: Props) {
+export function BounceButton({ title, onPress, variant = 'primary', size = 'regular', icon, disabled, accessibilityLabel, style }: Props) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
@@ -50,13 +55,15 @@ export function BounceButton({ title, onPress, variant = 'primary', size = 'regu
       }}
       style={[
         styles.base,
-        variant === 'primary' ? styles.primary : styles.text,
+        variant === 'primary' ? styles.primary : variant === 'secondary' ? styles.secondary : styles.text,
+        icon ? styles.withIcon : null,
         size === 'small' && styles.small,
         disabled && styles.disabled,
         style,
         animatedStyle,
       ]}
     >
+      {icon}
       <Text style={[styles[`${variant}Label`], size === 'small' && styles.smallLabel]}>{title}</Text>
     </AnimatedPressable>
   );
@@ -71,10 +78,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primary: { backgroundColor: colors.orange },
+  secondary: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.outline },
+  withIcon: { flexDirection: 'row', gap: spacing.sm },
   text: { backgroundColor: 'transparent', minHeight: touchTarget },
   small: { minHeight: touchTarget, paddingHorizontal: spacing.lg },
   disabled: { opacity: 0.5 },
   primaryLabel: { color: colors.text, fontSize: fontSizes.md, fontFamily: fonts.bodyExtraBold },
+  secondaryLabel: { color: colors.text, fontSize: fontSizes.md, fontFamily: fonts.bodyExtraBold },
   textLabel: { color: colors.textMuted, fontSize: fontSizes.md, fontFamily: fonts.bodyBold },
   linkLabel: { color: colors.blueDark, fontSize: fontSizes.md, fontFamily: fonts.bodyExtraBold },
   smallLabel: { fontSize: fontSizes.sm },

@@ -36,8 +36,8 @@ export default function OnboardingScreen({ navigation }: RootScreenProps<'Onboar
   const [page, setPage] = useState(0);
   const isLast = page === PAGES.length - 1;
 
-  // After the intro pages comes "Tell us about you", then Permissions.
-  const goToPermissions = () => navigation.reset({ index: 0, routes: [{ name: 'AboutYou' }] });
+  // After the intro pages comes Login (or "Use without an account"), then "Tell us about you", then Permissions.
+  const goToPermissions = () => navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   const next = () => {
     if (isLast) return goToPermissions();
     list.current?.scrollToIndex({ index: page + 1 });

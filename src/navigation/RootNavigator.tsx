@@ -5,6 +5,8 @@ import AboutYouScreen from '../screens/AboutYouScreen';
 import AddSpecialDayScreen from '../screens/AddSpecialDayScreen';
 import AutoSendSetupScreen from '../screens/AutoSendSetupScreen';
 import ConfettiGameScreen from '../screens/ConfettiGameScreen';
+import EmailCodeScreen from '../screens/EmailCodeScreen';
+import LoginScreen from '../screens/LoginScreen';
 import MyGiftScreen from '../screens/MyGiftScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PermissionsScreen from '../screens/PermissionsScreen';
@@ -38,6 +40,8 @@ export function RootNavigator() {
       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="EmailCode" component={EmailCodeScreen} />
         <Stack.Screen name="AboutYou" component={AboutYouScreen} />
         <Stack.Screen name="Permissions" component={PermissionsScreen} />
         <Stack.Screen name="Main" component={Tabs} options={{ animation: 'fade' }} />

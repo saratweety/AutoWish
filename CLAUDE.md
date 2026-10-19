@@ -1,4 +1,4 @@
-# AutoWish: project brief for Claude Code
+ca# AutoWish: project brief for Claude Code
 
 Read this whole file before writing any code. It is the single source of truth for the AutoWish app: what it does, how it looks, how it moves, and the order to build it in.
 

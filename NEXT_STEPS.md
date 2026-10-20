@@ -56,7 +56,7 @@ the count is `1` or more, and `git status --short` prints nothing.
 
 ---
 
-## - [ ] Step 1. Create the Clerk app (10 minutes)
+## - [x] Step 1. Create the Clerk app (10 minutes)
 
 **Why:** Clerk does the login. Without it, "Continue with Google" and the email
 code screen have nothing to talk to.
@@ -96,7 +96,7 @@ Click by click:
 
 ---
 
-## - [ ] Step 3. Run the server on your Mac first (15 minutes)
+## - [ ] Step 3. Run the server on your Mac first (15 minutes) - OPTIONAL, skipped for now
 
 **Why:** running it locally first means mistakes appear on your own screen
 instead of hiding in a deploy log. This also creates the database tables.
@@ -156,7 +156,7 @@ copy the whole error and send it to me.
 
 ---
 
-## - [ ] Step 4. Deploy the server to Railway (10 minutes)
+## - [x] Step 4. Deploy the server to Railway (10 minutes)
 
 **Why:** your phone cannot reach your Mac. The server has to live on the
 internet with its own `https://` address.
@@ -193,7 +193,7 @@ logs**. Read the first red line from the top (not the bottom). Send it to me.
 
 ---
 
-## - [ ] Step 5. Point the app at the server (2 minutes)
+## - [x] Step 5. Point the app at the server (2 minutes)
 
 **Why:** `EXPO_PUBLIC_API_URL` is empty right now, so the app knows no server
 exists and quietly stays local-only.
@@ -217,10 +217,13 @@ $ npx expo start -c
 **Checkpoint.**
 
 ```
-$ grep -c . .env && npx expo config --type public | grep -i railway
+$ grep EXPO_PUBLIC_API_URL .env
 ```
 
-Done when your Railway address appears in the output.
+Done when the line shows your Railway address.
+
+(`npx expo config` will NOT show it: `EXPO_PUBLIC_` values are baked into the
+JavaScript bundle when it is built, not into the app config.)
 
 ---
 

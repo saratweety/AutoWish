@@ -19,7 +19,7 @@ export function SyncManager() {
   const active = ready && loaded && signedIn && userId !== null;
 
   // Login, logout and app start. Waits until the phone's data is loaded,
-  // so a guest's records are there to be uploaded.
+  // so anything added before this sync is there to be uploaded.
   useEffect(() => {
     if (!ready || !loaded) return;
     setSyncUser(signedIn ? userId : null);

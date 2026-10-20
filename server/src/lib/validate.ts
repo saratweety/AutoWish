@@ -7,6 +7,13 @@ const isoDate = z.iso.datetime({ offset: true });
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm');
 const digits = z.string().regex(/^\d{0,20}$/, 'Digits only');
 const remindDays = z.union([z.literal(0), z.literal(1), z.literal(3), z.literal(7), z.literal(30)]);
+// One person can have several reminders (a week before, the day before, on the day).
+// At least one, and no repeats.
+const remindDaysList = z
+  .array(remindDays)
+  .min(1)
+  .max(5)
+  .refine((list) => new Set(list).size === list.length, 'No repeated reminders');
 const id = z.string().min(1).max(100);
 
 export const specialDaySchema = z.object({
@@ -20,7 +27,7 @@ export const specialDaySchema = z.object({
   year: z.number().int().min(1800).max(2200).nullish(),
   relationship: z.enum(['friend', 'best_friend', 'family', 'wife', 'husband', 'girlfriend', 'boyfriend', 'colleague']),
   photoUrl: z.string().max(500).regex(/^\/photos\//, 'Must be a /photos/ path').nullish(),
-  remindDaysBefore: remindDays,
+  remindDaysBefore: remindDaysList,
   reminderTime: clock.nullish(),
   sendTime: clock.nullish(),
   createdAt: isoDate,
@@ -52,7 +59,7 @@ export const settingsSchema = z.object({
     })
     .nullish(),
   defaultSendTime: clock,
-  defaultRemindDaysBefore: remindDays,
+  defaultRemindDaysBefore: remindDaysList,
   reminderTimeOfDay: clock,
   updatedAt: isoDate,
 });

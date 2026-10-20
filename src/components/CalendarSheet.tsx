@@ -184,7 +184,7 @@ function CalendarSheet({ options, visible, onClose }: SheetProps) {
   };
 
   return (
-    <SlideUpSheet visible={visible} onClose={onClose}>
+    <SlideUpSheet visible={visible} onClose={onClose} dragAnywhere={false}>
       {clockOpen && time !== undefined ? (
         <ClockPicker
           title={options.timeTitle ?? 'Your wish goes out at'}

@@ -2,36 +2,26 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { syncNow } from '../api/sync';
 import { useAccount } from '../auth/AccountProvider';
 import { useAccountActions } from '../auth/useAccountActions';
 import { colors, fonts, fontSizes, radius, spacing, type } from '../theme';
 import { BounceButton } from './BounceButton';
 import { SlideUpSheet } from './SlideUpSheet';
-import { SyncStatusLine } from './SyncStatusLine';
 
 /**
- * The account parts of Settings (CLAUDE.md 14.7). Returns three pieces, because the
- * sheets must sit at the top level of the screen to cover all of it:
- * - card: top of Settings. Logged in: initial, email, sync line, "Sync now", "Log out".
- *   Guest: "Sign in to back up your special days".
- * - deleteButton: the red "Delete account" text button for the bottom of Settings.
- * - sheets: "Not saved yet" (logging out while offline) and the delete confirm.
+ * Who you are logged in as, for "Your profile" (CLAUDE.md 14.7). Returns two pieces,
+ * because the sheet must sit at the top level of the screen to cover all of it:
+ * - card: your initial, your email and "Log out". Saving to the account happens by
+ *   itself, so there is nothing here to press for it.
+ *   Signed out (a session that lapsed): "You're signed out" and a way back in.
+ * - sheet: "Not saved yet", shown when logging out with changes still to upload.
  */
-export function useAccountSection() {
+export function useAccountCard() {
   const navigation = useNavigation();
   const { signedIn, email } = useAccount();
-  const { logOut, logOutAnyway, deleteAccount } = useAccountActions();
-  const [busy, setBusy] = useState<'sync' | 'logout' | 'delete' | null>(null);
+  const { logOut, logOutAnyway } = useAccountActions();
+  const [busy, setBusy] = useState<'logout' | null>(null);
   const [unsaved, setUnsaved] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const sync = async () => {
-    setBusy('sync');
-    await syncNow();
-    setBusy(null);
-  };
 
   const tryLogOut = async () => {
     setBusy('logout');
@@ -40,17 +30,6 @@ export function useAccountSection() {
     if (result === 'unsaved') {
       setBusy(null);
       setUnsaved(true);
-    }
-  };
-
-  const remove = async () => {
-    setBusy('delete');
-    setDeleteError(null);
-    try {
-      await deleteAccount(); // moves to the Login screen when done
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
-      setBusy(null);
     }
   };
 
@@ -64,26 +43,16 @@ export function useAccountSection() {
           <Text style={styles.email} numberOfLines={1}>
             {email}
           </Text>
-          <SyncStatusLine />
+          <Text style={styles.muted}>Your special days are saved here.</Text>
         </View>
       </View>
-      <View style={styles.buttons}>
-        <BounceButton
-          title={busy === 'sync' ? 'Syncing…' : 'Sync now'}
-          variant="secondary"
-          size="small"
-          onPress={sync}
-          disabled={busy !== null}
-          style={styles.flex}
-        />
-        <BounceButton
-          title={busy === 'logout' ? 'Logging out…' : 'Log out'}
-          variant="text"
-          size="small"
-          onPress={tryLogOut}
-          disabled={busy !== null}
-        />
-      </View>
+      <BounceButton
+        title={busy === 'logout' ? 'Logging out…' : 'Log out'}
+        variant="text"
+        size="small"
+        onPress={tryLogOut}
+        disabled={busy !== null}
+      />
     </View>
   ) : (
     <View style={styles.card}>
@@ -92,21 +61,16 @@ export function useAccountSection() {
           <Feather name="cloud" size={24} color={colors.text} />
         </View>
         <View style={styles.flex}>
-          <Text style={type.h3}>Sign in to back up your special days</Text>
-          <Text style={styles.muted}>So they come back on a new phone.</Text>
+          <Text style={type.h3}>{"You're signed out"}</Text>
+          <Text style={styles.muted}>Sign in again to keep your special days saved.</Text>
         </View>
       </View>
       <BounceButton title="Sign in" size="small" onPress={() => navigation.navigate('Login')} />
     </View>
   );
 
-  const deleteButton = signedIn ? (
-    <BounceButton title="Delete account" variant="danger" onPress={() => setConfirmDelete(true)} style={styles.deleteButton} />
-  ) : null;
-
-  const sheets = (
-    <>
-      <SlideUpSheet visible={unsaved} onClose={() => setUnsaved(false)}>
+  const sheet = (
+    <SlideUpSheet visible={unsaved} onClose={() => setUnsaved(false)}>
         <View style={styles.sheet}>
           <Text style={[type.h2, styles.center]}>Not saved yet</Text>
           <Text style={[type.bodyMuted, styles.center]}>
@@ -128,8 +92,39 @@ export function useAccountSection() {
             }}
           />
         </View>
-      </SlideUpSheet>
+    </SlideUpSheet>
+  );
 
+  return { card, sheet };
+}
+
+/**
+ * The red "Delete account" button for the bottom of Settings, and the confirm sheet
+ * that goes with it. Kept apart from the profile card: it wipes the account for good.
+ */
+export function useDeleteAccount() {
+  const { signedIn } = useAccount();
+  const { deleteAccount } = useAccountActions();
+  const [busy, setBusy] = useState<'delete' | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const remove = async () => {
+    setBusy('delete');
+    setDeleteError(null);
+    try {
+      await deleteAccount(); // moves to the Login screen when done
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+      setBusy(null);
+    }
+  };
+
+  const button = signedIn ? (
+    <BounceButton title="Delete account" variant="danger" onPress={() => setConfirmDelete(true)} style={styles.deleteButton} />
+  ) : null;
+
+  const sheet = (
       <SlideUpSheet visible={confirmDelete} onClose={() => busy !== 'delete' && setConfirmDelete(false)}>
         <View style={styles.sheet}>
           <Text style={[type.h2, styles.center]}>Delete your account?</Text>
@@ -146,10 +141,9 @@ export function useAccountSection() {
           <BounceButton title="Keep my account" variant="text" onPress={() => setConfirmDelete(false)} disabled={busy === 'delete'} />
         </View>
       </SlideUpSheet>
-    </>
   );
 
-  return { card, deleteButton, sheets };
+  return { button, sheet };
 }
 
 const styles = StyleSheet.create({
@@ -170,7 +164,6 @@ const styles = StyleSheet.create({
   initial: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.text },
   email: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.text },
   muted: { ...type.bodyMuted, fontSize: fontSizes.sm },
-  buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   sheet: { alignSelf: 'stretch', gap: spacing.sm, paddingTop: spacing.md },
   center: { textAlign: 'center' },
   danger: { backgroundColor: colors.danger },

@@ -4,7 +4,7 @@ import { useAccount } from '../auth/AccountProvider';
 import { colors } from '../theme';
 import { syncNow } from './sync';
 
-/** Pull-to-refresh that syncs with the account. Nothing for guests (there is no account to sync with). */
+/** Pull-to-refresh that syncs with the account. Nothing while signed out. */
 export function useSyncRefresh() {
   const { signedIn } = useAccount();
   const [refreshing, setRefreshing] = useState(false);

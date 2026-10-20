@@ -26,6 +26,7 @@ export const colors = {
   orange: '#FFA618', // main buttons and countdowns
   orangeGlow: 'rgba(255,166,24,0.45)', // soft glow around the picked day
   yellow: '#FFD961', // highlights, Today chip
+  yellowPale: '#FDF3E0', // the lightest yellow, behind people who still need a wish
   sparkle: '#F2C94C',
   outline: '#E6DFD3', // soft borders
 

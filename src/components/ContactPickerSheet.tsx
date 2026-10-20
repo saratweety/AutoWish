@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { dialOf, splitNumber } from '../data/countries';
 import { ContactPhone, loadContactPhones } from '../services/contacts';
 import { contactsAllowed, requestContacts } from '../services/permissions';
 import { colors, fonts, fontSizes, radius, spacing, type } from '../theme';
@@ -15,19 +16,25 @@ type Props = {
   onClose: () => void;
   /** phone is digits with the country code, e.g. "923001234567". */
   onPick: (contact: { name: string; phone: string }) => void;
+  /** Dialling code to assume for contacts saved without one, e.g. "92". */
+  countryCode?: string;
 };
 
-/** "923001234567" -> "+92 300 1234567" */
+/** "923001234567" -> "+92 300 1234567", for any country's code. */
 function showNumber(phone: string) {
-  const m = phone.match(/^92(\d{3})(\d+)$/);
-  return m ? `+92 ${m[1]} ${m[2]}` : `+${phone}`;
+  const { iso, local } = splitNumber(phone);
+  const dial = dialOf(iso);
+  if (!local) return `+${phone}`;
+  // Group the rest as "300 1234567" when it is long enough to split.
+  const rest = local.length > 4 ? `${local.slice(0, 3)} ${local.slice(3)}` : local;
+  return `+${dial} ${rest}`;
 }
 
 /**
  * A bottom sheet listing the phone's contacts with a search box.
  * Asks for contacts permission the first time it opens. Render it at the screen root.
  */
-export function ContactPickerSheet({ visible, onClose, onPick }: Props) {
+export function ContactPickerSheet({ visible, onClose, onPick, countryCode }: Props) {
   const { height } = useWindowDimensions();
   const [status, setStatus] = useState<Status>('loading');
   const [items, setItems] = useState<ContactPhone[]>([]);
@@ -43,7 +50,7 @@ export function ContactPickerSheet({ visible, onClose, onPick }: Props) {
         const allowed = (await contactsAllowed()) || (await requestContacts());
         if (cancelled) return;
         if (!allowed) return setStatus('no_permission');
-        const list = await loadContactPhones();
+        const list = await loadContactPhones(countryCode);
         if (cancelled) return;
         setItems(list);
         setStatus('ready');
@@ -54,7 +61,7 @@ export function ContactPickerSheet({ visible, onClose, onPick }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [visible, attempt]);
+  }, [visible, attempt, countryCode]);
 
   const close = () => {
     setSearch('');
@@ -74,7 +81,7 @@ export function ContactPickerSheet({ visible, onClose, onPick }: Props) {
     : items;
 
   return (
-    <SlideUpSheet visible={visible} onClose={close}>
+    <SlideUpSheet visible={visible} onClose={close} dragAnywhere={false}>
       <View style={[styles.body, { height: height * 0.75 }]}>
         <Text style={[type.h2, styles.title]}>Pick a contact</Text>
 

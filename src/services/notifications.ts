@@ -1,10 +1,14 @@
-import { addDays, addHours, differenceInCalendarDays, startOfDay, subDays, subMinutes } from 'date-fns';
-import { occasionWord, possessiveOccasion } from '../data/labels';
+import { subMinutes } from 'date-fns';
+import { occasionWord } from '../data/labels';
 import type { Settings, SpecialDay, Wish } from '../types';
 import { autoSendSupported, cancelAllAutoSends, cancelAutoSend, scheduleAutoSend } from './autoSend';
-import { nextOccurrence, withTime } from './dates';
+import { nextOccurrence } from './dates';
+import { nextReminders, reminderText } from './reminderPlan';
 import { loadNotifications } from './notificationsModule';
 import { ensureChannel, notificationsAllowed, REMINDER_CHANNEL_ID, requestNotifications } from './permissions';
+
+export { nextReminders, reminderText, reminderTimeFor, remindLaterTime } from './reminderPlan';
+export type { Reminder } from './reminderPlan';
 
 /** What a notification is about. Stored inside it, so a tap knows what to open. */
 export type NotificationData = { kind: 'reminder'; specialDayId: string } | { kind: 'send'; wishId: string };
@@ -52,59 +56,19 @@ export async function cancelAllNotifications() {
     .catch(() => {});
 }
 
-/** "today", "tomorrow", "in 3 days", "in a week". */
-function whenText(daysAway: number) {
-  if (daysAway <= 0) return 'today';
-  if (daysAway === 1) return 'tomorrow';
-  if (daysAway === 7) return 'in a week';
-  if (daysAway === 30) return 'in a month';
-  return `in ${daysAway} days`;
-}
-
-/**
- * Works out when the next reminder for a special day should go off.
- * Normally: N days before the day (1, 3 or 7) at the reminder time (10:00 AM).
- * If that moment has already passed (for example the day was added late),
- * it reminds on the day itself instead. If the day has passed too, it uses next year's date.
- */
-export function nextReminder(day: SpecialDay, settings: Settings, now = new Date()) {
-  // "Remind me later" was tapped: use that time instead.
-  if (day.remindLaterAt && new Date(day.remindLaterAt) > now) {
-    const at = new Date(day.remindLaterAt);
-    return { at, daysAway: differenceInCalendarDays(nextOccurrence(day, at), startOfDay(at)) };
+/** Schedules every reminder for a day. The caller cancels the old ones first. */
+export async function scheduleReminders(day: SpecialDay, settings: Settings) {
+  const ids: string[] = [];
+  for (const next of nextReminders(day, settings)) {
+    const id = await scheduleAt(
+      next.at,
+      reminderText(day, next.daysAway, nextOccurrence(day, next.at)),
+      'Busy? Tap to schedule your wish now.',
+      { kind: 'reminder', specialDayId: day.id },
+    );
+    if (id) ids.push(id);
   }
-  // This person's own reminder time, or the default from Settings.
-  const time = reminderTimeFor(day, settings);
-  let occurrence = nextOccurrence(day, now);
-  for (let year = 0; year < 2; year++) {
-    const early = withTime(subDays(occurrence, day.remindDaysBefore), time);
-    if (early > now) return { at: early, daysAway: day.remindDaysBefore as number };
-    const onTheDay = withTime(occurrence, time);
-    if (onTheDay > now) return { at: onTheDay, daysAway: 0 };
-    occurrence = nextOccurrence(day, addDays(occurrence, 1));
-  }
-  return null;
-}
-
-/** The reminder time for one person: their own if set, otherwise the default. */
-export function reminderTimeFor(day: SpecialDay, settings: Settings) {
-  return day.reminderTime ?? settings.reminderTimeOfDay;
-}
-
-/** When "Remind me later" should remind again: on the day at the reminder time, or in 2 hours if that has passed. */
-export function remindLaterTime(day: SpecialDay, settings: Settings, now = new Date()) {
-  const onTheDay = withTime(nextOccurrence(day, now), reminderTimeFor(day, settings));
-  return onTheDay > now ? onTheDay : addHours(now, 2);
-}
-
-/** Schedules the reminder for a day. The caller cancels any old one first. */
-export async function scheduleReminder(day: SpecialDay, settings: Settings) {
-  const next = nextReminder(day, settings);
-  if (!next) return undefined;
-  return scheduleAt(next.at, `${possessiveOccasion(day)} is ${whenText(next.daysAway)}!`, 'Busy? Tap to schedule your wish now.', {
-    kind: 'reminder',
-    specialDayId: day.id,
-  });
+  return ids;
 }
 
 /** How long before the send time the heads-up arrives. */
@@ -154,8 +118,8 @@ export async function cancelWishNotifications(wish: (WishNotificationIds & { id:
  */
 export async function rescheduleAll(days: SpecialDay[], wishes: Wish[], settings: Settings) {
   await cancelAllNotifications();
-  const reminderIds = new Map<string, string | undefined>();
-  for (const day of days) reminderIds.set(day.id, await scheduleReminder(day, settings).catch(() => undefined));
+  const reminderIds = new Map<string, string[]>();
+  for (const day of days) reminderIds.set(day.id, await scheduleReminders(day, settings).catch(() => []));
   const wishIds = new Map<string, WishNotificationIds>();
   for (const wish of wishes) {
     const day = days.find((d) => d.id === wish.specialDayId);

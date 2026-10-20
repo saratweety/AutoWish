@@ -20,14 +20,13 @@ export default function SplashScreen({ navigation }: RootScreenProps<'Splash'>) 
   }, []);
 
   // Once the animation has played, saved data is loaded and we know who is logged in:
-  // first launch goes to Onboarding; logged in (or using it without an account) goes
-  // straight to Home; logged out goes to Login.
-  const loggedInOrGuest = account.signedIn || account.guest;
+  // first launch goes to Onboarding; logged in goes straight to Home; logged out
+  // goes to Login. An account is required, so there is no way past it.
   useEffect(() => {
     if (!played || !ready || !account.loaded) return;
-    const next = !settings.onboardingDone ? 'Onboarding' : loggedInOrGuest ? 'Main' : 'Login';
+    const next = !settings.onboardingDone ? 'Onboarding' : account.signedIn ? 'Main' : 'Login';
     navigation.reset({ index: 0, routes: [{ name: next }] });
-  }, [played, ready, account.loaded, loggedInOrGuest, settings.onboardingDone, navigation]);
+  }, [played, ready, account.loaded, account.signedIn, settings.onboardingDone, navigation]);
 
   return (
     <View style={styles.screen}>

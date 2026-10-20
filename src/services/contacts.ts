@@ -14,8 +14,11 @@ const PHONE_FIELDS = [ContactField.FULL_NAME, ContactField.PHONES, ContactField.
 /**
  * Reads every contact that has a phone number. A contact with two numbers
  * shows up twice, once per number, so the right one can be picked.
+ *
+ * `countryCode` is the dialling code to assume for a number saved without one
+ * (e.g. "0300 1234567"), which is the country the person chose in the number box.
  */
-export async function loadContactPhones(): Promise<ContactPhone[]> {
+export async function loadContactPhones(countryCode?: string): Promise<ContactPhone[]> {
   const contacts = await Contact.getAllDetails(PHONE_FIELDS);
   const result: ContactPhone[] = [];
 
@@ -24,7 +27,7 @@ export async function loadContactPhones(): Promise<ContactPhone[]> {
     if (!name) continue;
     const seen = new Set<string>();
     for (const p of c.phones ?? []) {
-      const phone = p.number ? toWhatsAppNumber(p.number) : null;
+      const phone = p.number ? toWhatsAppNumber(p.number, countryCode) : null;
       // Skip numbers that are too short, and the same number saved twice.
       if (!phone || seen.has(phone)) continue;
       seen.add(phone);

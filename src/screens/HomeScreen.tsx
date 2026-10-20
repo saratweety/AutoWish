@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSyncStatus } from '../api/sync';
@@ -11,10 +11,14 @@ import { HomeHeader } from '../components/HomeHeader';
 import { SlideInCard } from '../components/SlideInCard';
 import { TodayCard, todayTextColor } from '../components/TodayCard';
 import { DailyGameCard } from '../components/DailyGameCard';
+import { ContactPickerSheet } from '../components/ContactPickerSheet';
 import { GettingReady } from '../components/GettingReady';
+import { QuickActionSheet } from '../components/QuickActionSheet';
+import { WishForSheet } from '../components/WishForSheet';
 import { WelcomeBackToast } from '../components/WelcomeBackToast';
-import { occasionName, possessiveOccasion, RELATIONSHIP_LABELS } from '../data/labels';
-import { daysUntil, formatTime } from '../services/dates';
+import { milestone, occasionName, possessiveOccasion, RELATIONSHIP_LABELS } from '../data/labels';
+import { dialOf } from '../data/countries';
+import { daysUntil, formatTime, nextOccurrence } from '../services/dates';
 import { displayStatus, wishForNextDate } from '../services/wishes';
 import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, type } from '../theme';
@@ -25,7 +29,11 @@ const shownReminders = new Set<string>();
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { specialDays, wishes, gift } = useApp();
+  const { specialDays, wishes, gift, settings } = useApp();
+  // The "+" button opens a choice of three things; two of them open a sheet of their own.
+  const [choosing, setChoosing] = useState(false);
+  const [pickingPerson, setPickingPerson] = useState(false);
+  const [pickingContact, setPickingContact] = useState(false);
   const todayText = todayTextColor(gift.equipped);
   const refreshControl = useSyncRefresh();
   const { downloading } = useSyncStatus();
@@ -110,12 +118,14 @@ export default function HomeScreen() {
         </Text>
         {upcoming.map((day, index) => {
           const sent = wishForNextDate(day, wishes)?.status === 'sent';
+          // "turns 25" / "10th anniversary", only when the year was saved.
+          const turns = milestone(day, nextOccurrence(day));
           return (
             <Pressable
               key={day.id}
               accessibilityRole="button"
-              accessibilityLabel={`${day.name}, ${occasionName(day)}${sent ? ', wish sent' : ''}, edit`}
-              onPress={() => navigation.navigate('AddSpecialDay', { specialDayId: day.id })}
+              accessibilityLabel={`${day.name}, ${occasionName(day)}${turns ? `, ${turns}` : ''}${sent ? ', wish sent' : ''}`}
+              onPress={() => navigation.navigate('Person', { specialDayId: day.id })}
             >
               <SlideInCard index={index + today.length} style={styles.card}>
                 <Avatar name={day.name} photoUri={day.photoUri} photoUrl={day.photoUrl} />
@@ -124,7 +134,10 @@ export default function HomeScreen() {
                     {day.name}
                   </Text>
                   <View style={styles.metaRow}>
-                    <Text style={type.bodyMuted}>{occasionName(day)}</Text>
+                    <Text style={type.bodyMuted}>
+                      {occasionName(day)}
+                      {turns ? ` · ${turns}` : ''}
+                    </Text>
                     <Text style={styles.relation}>{RELATIONSHIP_LABELS[day.relationship]}</Text>
                   </View>
                   {sent && <SentLine />}
@@ -138,13 +151,41 @@ export default function HomeScreen() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Add special day"
-        onPress={() => navigation.navigate('AddSpecialDay')}
+        accessibilityLabel="Add a wish or a special day"
+        onPress={() => setChoosing(true)}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
       >
         <Feather name="plus" size={32} color={colors.text} />
       </Pressable>
       <WelcomeBackToast />
+
+      {/* The sheets live outside the ScrollView, so their own lists can scroll. */}
+      <QuickActionSheet
+        visible={choosing}
+        onClose={() => setChoosing(false)}
+        onWriteWish={() => {
+          setChoosing(false);
+          setPickingPerson(true);
+        }}
+        onAddDay={() => {
+          setChoosing(false);
+          navigation.navigate('AddSpecialDay');
+        }}
+        onPickContact={() => {
+          setChoosing(false);
+          setPickingContact(true);
+        }}
+      />
+      <WishForSheet visible={pickingPerson} onClose={() => setPickingPerson(false)} />
+      <ContactPickerSheet
+        visible={pickingContact}
+        onClose={() => setPickingContact(false)}
+        countryCode={dialOf(settings.defaultCountry)}
+        onPick={(contact) => {
+          setPickingContact(false);
+          navigation.navigate('AddSpecialDay', { prefill: contact });
+        }}
+      />
     </SafeAreaView>
   );
 }

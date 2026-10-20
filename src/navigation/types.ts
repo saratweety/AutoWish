@@ -12,12 +12,16 @@ export type TabParamList = {
 export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
-  Login: undefined; // "Welcome to AutoWish": after onboarding, and whenever logged out
+  // "Welcome to AutoWish": after onboarding, and whenever logged out.
+  // preview = just look at the screen (the __DEV__ row in Settings), stay logged in.
+  Login: { preview?: boolean } | undefined;
   EmailCode: { email: string; flow: 'signIn' | 'signUp' }; // the 6-digit code from the email
   AboutYou: { editing?: boolean } | undefined; // editing = opened from Home/Settings, not during setup
   Permissions: undefined;
   Main: NavigatorScreenParams<TabParamList> | undefined;
-  AddSpecialDay: { specialDayId?: string } | undefined; // no id = add, id = edit
+  // no id = add, id = edit. prefill = name and number taken from a contact.
+  AddSpecialDay: { specialDayId?: string; prefill?: { name: string; phone: string } } | undefined;
+  Person: { specialDayId: string }; // one person's page: their day, wish, reminder and past wishes
   Reminder: { specialDayId: string };
   WriteWish: { specialDayId: string; wishId?: string }; // wishId = edit an existing wish
   Success: { name: string; sendAt: string }; // sendAt as an ISO date-time

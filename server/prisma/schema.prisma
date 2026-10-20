@@ -41,7 +41,7 @@ model SpecialDay {
   year             Int?
   relationship     String
   photoUrl         String?
-  remindDaysBefore Int
+  remindDaysBefore Int[] // one or more: 0 = on the day, then 1, 3, 7, 30 days before
   reminderTime     String? // "HH:mm" for this person; empty = the default from Settings
   sendTime         String? // "HH:mm" new wishes for this person go out at
   createdAt        DateTime
@@ -78,7 +78,7 @@ model Settings {
   userPhone               String?
   userBirthday            Json? // { month, day, year? }
   defaultSendTime         String // "00:00"
-  defaultRemindDaysBefore Int
+  defaultRemindDaysBefore Int[]
   reminderTimeOfDay       String // "10:00"
   updatedAt               DateTime
   syncedAt                DateTime @default(now()) @updatedAt

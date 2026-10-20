@@ -11,37 +11,35 @@ import { datePartsForCalendar, DateFields, emptyDateParts, readDateParts, toDate
 import { useClockSheet } from '../components/ClockSheet';
 import { FieldBox, FieldLabel, fieldStyles, TextField } from '../components/Field';
 import { ContactPickerSheet } from '../components/ContactPickerSheet';
+import { useCountryCodeField } from '../components/CountryCodeField';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SlideUpSheet } from '../components/SlideUpSheet';
 import { TimeField } from '../components/TimeField';
 import {
   OCCASION_LABELS,
+  ordinal,
   possessiveOccasion,
   RELATIONSHIP_LABELS,
   RELATIONSHIPS,
   REMIND_CHOICES,
   REMIND_LABELS,
+  remindSummary,
 } from '../data/labels';
 import type { RootScreenProps } from '../navigation/types';
 import { formatLongDate, nextOccurrence } from '../services/dates';
+import { dialOf, splitNumber } from '../data/countries';
 import { cleanLocalNumber } from '../services/phone';
 import { newId, useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, formPadding, radius, spacing, type } from '../theme';
 import type { Occasion, Relationship, RemindDays } from '../types';
 
-/** 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st */
-function ordinal(n: number) {
-  const teens = n % 100 >= 11 && n % 100 <= 13;
-  const suffix = teens ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
-  return `${n}${suffix}`;
-}
-
 const OCCASIONS: Occasion[] = ['birthday', 'anniversary', 'mothers_day', 'fathers_day', 'other'];
-const COUNTRY_CODE = '92'; // Pakistan. A country code picker comes in the polish milestone.
 
 export default function AddSpecialDayScreen({ navigation, route }: RootScreenProps<'AddSpecialDay'>) {
-  const { specialDays, settings, saveDay, deleteDay } = useApp();
+  const { specialDays, settings, saveDay, deleteDay, updateSettings } = useApp();
   const existing = specialDays.find((d) => d.id === route.params?.specialDayId);
+  // "Pick from contacts" on Home opens this screen with the name and number already filled in.
+  const prefill = route.params?.prefill;
   const isEdit = Boolean(existing);
   const clock = useClockSheet();
   const calendar = useCalendarSheet();
@@ -49,29 +47,45 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
   const [photoUri, setPhotoUri] = useState(existing?.photoUri);
   // A photo saved on the account by another phone shows until a new one is picked.
   const photo = usePhotoSource(photoUri, existing?.photoUrl);
-  const [name, setName] = useState(existing?.name ?? '');
+  const [name, setName] = useState(existing?.name ?? prefill?.name ?? '');
+  // An existing number already has a country code in front; split it back apart so the
+  // picker shows their country and the box shows only the rest.
+  const saved = splitNumber(existing?.phone ?? prefill?.phone);
+  const [iso, setIso] = useState(existing || prefill ? saved.iso : (settings.defaultCountry ?? saved.iso));
   // The number as typed, without the country code.
-  const [phone, setPhone] = useState(existing?.phone.replace(new RegExp(`^${COUNTRY_CODE}`), '') ?? '');
+  const [phone, setPhone] = useState(existing || prefill ? saved.local : '');
+  const countryCode = dialOf(iso);
+  const countryField = useCountryCodeField({ iso, onChange: setIso });
   const [occasion, setOccasion] = useState<Occasion>(existing?.occasion ?? 'birthday');
   const [customOccasion, setCustomOccasion] = useState(existing?.customOccasion ?? '');
   const [date, setDate] = useState(existing ? toDateParts(existing) : emptyDateParts);
   const [relationship, setRelationship] = useState<Relationship>(existing?.relationship ?? 'friend');
-  const [remind, setRemind] = useState<RemindDays>(existing?.remindDaysBefore ?? settings.defaultRemindDaysBefore);
+  // More than one reminder is allowed: a week before AND the day before, say.
+  const [remind, setRemind] = useState<RemindDays[]>(existing?.remindDaysBefore ?? settings.defaultRemindDaysBefore);
+
+  /** Ticks a reminder on or off. The last one can't be removed: something must remind you. */
+  const toggleRemind = (r: RemindDays) =>
+    setRemind((current) =>
+      current.includes(r) ? (current.length === 1 ? current : current.filter((x) => x !== r)) : [...current, r],
+    );
   // undefined = use the default reminder time from Settings.
   const [reminderTime, setReminderTime] = useState<string | undefined>(existing?.reminderTime);
   const [codeRemoved, setCodeRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickingContact, setPickingContact] = useState(false);
   // True right after a contact's number was filled in, until the number is edited.
-  const [fromContacts, setFromContacts] = useState(false);
+  const [fromContacts, setFromContacts] = useState(Boolean(prefill));
 
   const pickContact = ({ name: contactName, phone: full }: { name: string; phone: string }) => {
-    // The field shows +92 on its own, so only the rest of the number goes in.
-    setPhone(full.startsWith(COUNTRY_CODE) ? full.slice(COUNTRY_CODE.length) : full);
+    // The contact's number carries its own country code. Move the picker to that
+    // country and put only the rest in the box, so nothing is typed twice.
+    const picked = splitNumber(full);
+    setIso(picked.iso);
+    setPhone(picked.local);
     if (!name.trim()) setName(contactName);
     setFromContacts(true);
     setCodeRemoved(false);
-    setError(full.startsWith(COUNTRY_CODE) ? null : `This number doesn't start with +${COUNTRY_CODE}. Please check it.`);
+    setError(null);
   };
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -133,10 +147,13 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
       : readDateParts(date);
     if ('error' in picked) return setError(picked.error);
 
+    // The next person added on this phone starts on the same country.
+    if (iso !== settings.defaultCountry) updateSettings({ defaultCountry: iso });
+
     saveDay({
       id: existing?.id ?? newId(),
       name: name.trim(),
-      phone: COUNTRY_CODE + localNumber,
+      phone: countryCode + localNumber,
       occasion,
       customOccasion: occasion === 'other' ? customOccasion.trim() : undefined,
       month: picked.month,
@@ -184,13 +201,13 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
 
         <FieldLabel>WhatsApp number</FieldLabel>
         <FieldBox>
-          <Text style={styles.code}>+{COUNTRY_CODE}</Text>
+          {countryField.field}
           <View style={styles.divider} />
           <TextInput
             value={phone}
             onChangeText={(t) => {
-              // +92 is already shown, so a typed or pasted country code (or leading 0) is removed.
-              const { digits, removedCode } = cleanLocalNumber(t, COUNTRY_CODE);
+              // The code is already shown, so a typed or pasted country code (or leading 0) is removed.
+              const { digits, removedCode } = cleanLocalNumber(t, countryCode);
               setPhone(digits);
               setFromContacts(false);
               if (removedCode) setCodeRemoved(true);
@@ -217,7 +234,7 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
             <Text style={styles.contactTagText}>Number added from contacts</Text>
           </View>
         ) : codeRemoved ? (
-          <Text style={type.caption}>{`We removed the +${COUNTRY_CODE} for you, it's already added.`}</Text>
+          <Text style={type.caption}>{`We removed the +${countryCode} for you, it's already added.`}</Text>
         ) : (
           <Text style={type.caption}>Type it, or tap the contact button to pick from your phone.</Text>
         )}
@@ -260,9 +277,10 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
         <FieldLabel>Remind me</FieldLabel>
         <ChipScrollRow edge={formPadding}>
           {REMIND_CHOICES.map((r) => (
-            <Chip key={r} compact label={REMIND_LABELS[r]} selected={remind === r} onPress={() => setRemind(r)} />
+            <Chip key={r} compact label={REMIND_LABELS[r]} selected={remind.includes(r)} onPress={() => toggleRemind(r)} />
           ))}
         </ChipScrollRow>
+        <Text style={type.caption}>{`Pick as many as you like. Right now: ${remindSummary(remind).toLowerCase()}.`}</Text>
         <TimeField
           icon="clock"
           label="Reminder time"
@@ -295,8 +313,14 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
         </View>
       </SlideUpSheet>
       {clock.sheet}
-      <ContactPickerSheet visible={pickingContact} onClose={() => setPickingContact(false)} onPick={pickContact} />
+      <ContactPickerSheet
+        visible={pickingContact}
+        onClose={() => setPickingContact(false)}
+        onPick={pickContact}
+        countryCode={countryCode}
+      />
       {calendar.sheet}
+      {countryField.sheet}
     </SafeAreaView>
   );
 }
@@ -328,7 +352,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  code: { fontFamily: fonts.body, fontSize: fontSizes.lg, color: colors.text },
   divider: { width: 1, height: 24, backgroundColor: colors.outline },
   contactButton: {
     width: 40,

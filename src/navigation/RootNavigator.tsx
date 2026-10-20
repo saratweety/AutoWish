@@ -10,6 +10,7 @@ import LoginScreen from '../screens/LoginScreen';
 import MyGiftScreen from '../screens/MyGiftScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PermissionsScreen from '../screens/PermissionsScreen';
+import PersonScreen from '../screens/PersonScreen';
 import ReminderScreen from '../screens/ReminderScreen';
 import SendConfirmScreen from '../screens/SendConfirmScreen';
 import SplashScreen from '../screens/SplashScreen';
@@ -46,6 +47,7 @@ export function RootNavigator() {
         <Stack.Screen name="Permissions" component={PermissionsScreen} />
         <Stack.Screen name="Main" component={Tabs} options={{ animation: 'fade' }} />
         <Stack.Screen name="AddSpecialDay" component={AddSpecialDayScreen} />
+        <Stack.Screen name="Person" component={PersonScreen} />
         <Stack.Screen name="WriteWish" component={WriteWishScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="AutoSendSetup" component={AutoSendSetupScreen} />

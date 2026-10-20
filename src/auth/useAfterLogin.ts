@@ -5,7 +5,7 @@ import { notificationsAllowed } from '../services/permissions';
 import { useApp } from '../state/AppContext';
 
 /**
- * Where to go once someone has logged in (or chosen "Use without an account"), CLAUDE.md 14.5.
+ * Where to go once someone has logged in, CLAUDE.md 14.5.
  *
  * Logged in during the first-launch setup: we wait for the account's data to download
  * ("Getting your special days…"), so a returning user isn't asked for their name again.
@@ -33,9 +33,5 @@ export function useAfterLogin() {
     navigation.reset({ index: 0, routes: [{ name: knowsName ? 'Permissions' : 'AboutYou' }] });
   };
 
-  const afterGuest = () => {
-    navigation.reset({ index: 0, routes: [{ name: settings.onboardingDone ? 'Main' : 'AboutYou' }] });
-  };
-
-  return { afterLogin, afterGuest, gettingReady };
+  return { afterLogin, gettingReady };
 }

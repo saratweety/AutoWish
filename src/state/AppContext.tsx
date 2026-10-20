@@ -10,7 +10,7 @@ import {
   cancelWishNotifications,
   remindLaterTime,
   rescheduleAll,
-  scheduleReminder,
+  scheduleReminders,
   scheduleWishNotifications,
   type WishNotificationIds,
 } from '../services/notifications';
@@ -92,8 +92,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /** Stores freshly scheduled notification ids without touching anything else. */
-  const applyIds = (reminderIds: Map<string, string | undefined>, wishIds: Map<string, WishNotificationIds>) => {
-    commit.days((list) => list.map((d) => (reminderIds.has(d.id) ? { ...d, reminderNotificationId: reminderIds.get(d.id) } : d)));
+  const applyIds = (reminderIds: Map<string, string[]>, wishIds: Map<string, WishNotificationIds>) => {
+    commit.days((list) => list.map((d) => (reminderIds.has(d.id) ? { ...d, reminderNotificationIds: reminderIds.get(d.id) } : d)));
     commit.wishes((list) =>
       list.map((w) => (wishIds.has(w.id) ? { ...w, notificationId: undefined, earlyNotificationId: undefined, ...wishIds.get(w.id) } : w)),
     );
@@ -122,8 +122,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const clearAccountData = async () => {
     // Cancel first, so a logged-out phone never reminds about someone.
     await cancelAllNotifications();
-    const { onboardingDone, autoSend } = latest.current.settings;
-    const kept = { ...DEFAULT_SETTINGS, onboardingDone, autoSend };
+    const { onboardingDone, autoSend, defaultCountry } = latest.current.settings;
+    const kept = { ...DEFAULT_SETTINGS, onboardingDone, autoSend, defaultCountry };
     commit.days(() => []);
     commit.wishes(() => []);
     commit.settings(kept);
@@ -208,8 +208,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const now = () => new Date().toISOString();
 
     const scheduleDayReminder = async (day: SpecialDay) => {
-      const id = await scheduleReminder(day, latest.current.settings).catch(() => undefined);
-      commit.days((list) => list.map((d) => (d.id === day.id ? { ...d, reminderNotificationId: id } : d)));
+      const ids = await scheduleReminders(day, latest.current.settings).catch(() => []);
+      commit.days((list) => list.map((d) => (d.id === day.id ? { ...d, reminderNotificationIds: ids } : d)));
+    };
+
+    /** Cancels every reminder a person currently has waiting. */
+    const cancelDayReminders = async (day: SpecialDay | undefined) => {
+      for (const id of day?.reminderNotificationIds ?? []) await cancelNotification(id);
     };
 
     return {
@@ -227,8 +232,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       saveDay: async (day) => {
         // An edit replaces the old reminder (the date or "remind me" choice may have changed).
-        await cancelNotification(findDay(day.id)?.reminderNotificationId);
-        const fresh: SpecialDay = { ...day, updatedAt: now(), reminderNotificationId: undefined, remindLaterAt: undefined };
+        await cancelDayReminders(findDay(day.id));
+        const fresh: SpecialDay = { ...day, updatedAt: now(), reminderNotificationIds: undefined, remindLaterAt: undefined };
         commit.days((list) => upsert(list, fresh));
         recordChanges([{ kind: 'day', id: fresh.id }]);
         await scheduleDayReminder(fresh);
@@ -236,7 +241,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       deleteDay: async (id) => {
         const day = findDay(id);
-        await cancelNotification(day?.reminderNotificationId);
+        await cancelDayReminders(day);
         // A deleted person's wishes go too, with their notifications.
         const theirWishes = latest.current.wishes.filter((x) => x.specialDayId === id);
         for (const w of theirWishes) await cancelWishNotifications(w);
@@ -279,7 +284,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       remindLater: async (dayId) => {
         const day = findDay(dayId);
         if (!day) return;
-        await cancelNotification(day.reminderNotificationId);
+        await cancelDayReminders(day);
         const snoozed = { ...day, remindLaterAt: remindLaterTime(day, latest.current.settings).toISOString() };
         commit.days((list) => upsert(list, snoozed));
         await scheduleDayReminder(snoozed);

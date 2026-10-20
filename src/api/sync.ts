@@ -156,7 +156,7 @@ function fromServerDay(r: ServerDay, mine: SpecialDay | undefined): SpecialDay {
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
     // Notifications are rescheduled after every merge; "Remind me later" stays on this phone.
-    reminderNotificationId: mine?.reminderNotificationId,
+    reminderNotificationIds: mine?.reminderNotificationIds,
     remindLaterAt: mine?.remindLaterAt,
   };
 }
@@ -360,7 +360,7 @@ export async function recordChanges(changes: Change[]) {
   syncSoon();
 }
 
-/** After logging in: put every local record in the outbox, so a guest's data is uploaded. */
+/** After logging in: put every local record in the outbox, so nothing on the phone is lost. */
 async function queueEverything(local: LocalData) {
   const box = await getOutbox();
   for (const d of local.specialDays) box.days[d.id] ??= true;
@@ -471,7 +471,7 @@ export type LocalStore = {
 };
 
 let store: LocalStore | null = null;
-/** Logged-in Clerk user id, or null when logged out / guest. */
+/** Logged-in Clerk user id, or null when logged out. */
 let userId: string | null = null;
 // Goes up on every logout, so a sync that was still running can't write old data back.
 let session = 0;
@@ -500,7 +500,7 @@ export function whenAccountReady(timeoutMs = 20_000) {
  * login state changes, and on app start.
  * - The same user as last time (app start): sync normally.
  * - A different user, or the first login on this phone: upload everything that is
- *   on the phone (a guest's data), then download everything from the account.
+ *   on the phone, then download everything from the account.
  */
 export async function setSyncUser(id: string | null) {
   if (id === userId) return;

@@ -7,7 +7,7 @@ import { useAccount } from './AccountProvider';
 /** Log out and Delete account, exactly as in CLAUDE.md 14.5. */
 export function useAccountActions() {
   const navigation = useNavigation();
-  const { signOut, setGuest } = useAccount();
+  const { signOut } = useAccount();
   const { clearAccountData } = useApp();
 
   /** Removes the account from this phone and goes to the Login screen. */
@@ -19,7 +19,6 @@ export function useAccountActions() {
     // then clears special days, wishes, settings and gift state.
     await clearAccountData();
     await signOut().catch(() => {});
-    await setGuest(false);
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 

@@ -2,7 +2,7 @@ import { useSSO } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLottie } from '../components/AppLottie';
@@ -15,23 +15,23 @@ import { loginErrorMessage } from '../auth/errors';
 import { useAfterLogin } from '../auth/useAfterLogin';
 import { useEmailCode } from '../auth/useEmailCode';
 import type { RootScreenProps } from '../navigation/types';
+import { useApp } from '../state/AppContext';
 import { colors, fonts, fontSizes, screenPadding, spacing, type } from '../theme';
 
 // Closes the Google login browser window when it sends us back to the app.
 WebBrowser.maybeCompleteAuthSession();
 
-const NOT_SET_UP = "Login isn't set up yet. You can use AutoWish without an account for now.";
+const NOT_SET_UP = "Login isn't set up on this build yet. Add the Clerk key to .env and restart.";
 
 type LayoutProps = {
   busy: boolean;
   error: string | null;
   onGoogle: () => void;
   onEmail: () => void;
-  onGuest: () => void;
 };
 
-/** "Welcome to AutoWish": the gift, the wordmark and the three ways in. */
-function LoginLayout({ busy, error, onGoogle, onEmail, onGuest }: LayoutProps) {
+/** "Welcome to AutoWish": the gift, the wordmark and the two ways in. */
+function LoginLayout({ busy, error, onGoogle, onEmail }: LayoutProps) {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.center}>
@@ -52,7 +52,6 @@ function LoginLayout({ busy, error, onGoogle, onEmail, onGuest }: LayoutProps) {
           disabled={busy}
         />
         <BounceButton title="Continue with email" onPress={onEmail} disabled={busy} />
-        <BounceButton title="Use without an account" variant="text" onPress={onGuest} disabled={busy} />
         <Text style={styles.small}>We only use your email to log you in.</Text>
       </View>
     </SafeAreaView>
@@ -60,9 +59,11 @@ function LoginLayout({ busy, error, onGoogle, onEmail, onGuest }: LayoutProps) {
 }
 
 /** Login with Clerk: Google, or a code sent by email. */
-function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
-  const { setGuest } = useAccount();
-  const { afterLogin, afterGuest, gettingReady } = useAfterLogin();
+function ClerkLogin({ navigation, route }: RootScreenProps<'Login'>) {
+  const { loaded, signedIn } = useAccount();
+  // The saved settings decide where a logged-in person goes next, so wait for them.
+  const { ready } = useApp();
+  const { afterLogin, gettingReady } = useAfterLogin();
   const { startSSOFlow } = useSSO();
   const emailCode = useEmailCode();
   const [busy, setBusy] = useState(false);
@@ -70,6 +71,22 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
   const [askingEmail, setAskingEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
+  // A login is kept in the phone's secure storage, so someone can arrive here with a
+  // session that still works: after the intro pages, or from the back button. There is
+  // nothing to log in to, so carry straight on instead of showing a dead screen.
+  // Only the state we arrived with counts; a fresh login is handled by the buttons below.
+  const handledArrival = useRef(false);
+  const preview = Boolean(route.params?.preview);
+  // Already logged in and not just looking: we are on our way out, so cover the
+  // buttons rather than letting them flash up for a moment.
+  const resuming = loaded && ready && signedIn && !preview;
+  useEffect(() => {
+    if (!loaded || !ready || handledArrival.current || preview) return;
+    handledArrival.current = true;
+    if (!signedIn) return;
+    afterLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, ready, signedIn, preview]);
 
   // Android: open the browser faster when Google login is tapped.
   useEffect(() => {
@@ -117,15 +134,10 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
     }
   };
 
-  const guest = async () => {
-    await setGuest(true);
-    afterGuest();
-  };
-
   return (
     // Lifts the email sheet above the keyboard on iPhone (Android does this by itself).
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <LoginLayout busy={busy} error={error} onGoogle={google} onEmail={() => setAskingEmail(true)} onGuest={guest} />
+      <LoginLayout busy={busy} error={error} onGoogle={google} onEmail={() => setAskingEmail(true)} />
       <SlideUpSheet visible={askingEmail} onClose={() => setAskingEmail(false)}>
         <View style={styles.sheet}>
           <Text style={[type.h2, styles.centerText]}>Continue with email</Text>
@@ -149,28 +161,15 @@ function ClerkLogin({ navigation }: RootScreenProps<'Login'>) {
           <BounceButton title="Cancel" variant="text" onPress={() => setAskingEmail(false)} />
         </View>
       </SlideUpSheet>
-      {gettingReady && <GettingReady overlay />}
+      {(gettingReady || resuming) && <GettingReady overlay />}
     </KeyboardAvoidingView>
   );
 }
 
-/** Shown while the Clerk key isn't in .env yet: only "Use without an account" works. */
+/** Shown while the Clerk key isn't in .env yet: both buttons explain what is missing. */
 function LoginNotSetUp() {
-  const { setGuest } = useAccount();
-  const { afterGuest } = useAfterLogin();
   const [error, setError] = useState<string | null>(null);
-  return (
-    <LoginLayout
-      busy={false}
-      error={error}
-      onGoogle={() => setError(NOT_SET_UP)}
-      onEmail={() => setError(NOT_SET_UP)}
-      onGuest={async () => {
-        await setGuest(true);
-        afterGuest();
-      }}
-    />
-  );
+  return <LoginLayout busy={false} error={error} onGoogle={() => setError(NOT_SET_UP)} onEmail={() => setError(NOT_SET_UP)} />;
 }
 
 export default function LoginScreen(props: RootScreenProps<'Login'>) {

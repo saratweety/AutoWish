@@ -27,10 +27,10 @@ export interface SpecialDay {
   photoUri?: string; // LOCAL ONLY: the photo file on this phone
   photoUrl?: string; // the photo saved on our server ("/photos/..."), so other phones can show it
   photoUploadedFrom?: string; // LOCAL ONLY: which photoUri photoUrl was made from
-  remindDaysBefore: RemindDays;
+  remindDaysBefore: RemindDays[]; // one or more: e.g. [7, 1, 0] = a week before, the day before, and on the day
   reminderTime?: string; // "HH:mm" for this person; not set = use the default from Settings
   sendTime?: string; // "HH:mm" new wishes for this person go out at; not set = the default from Settings
-  reminderNotificationId?: string; // LOCAL ONLY, never synced (see 14.4)
+  reminderNotificationIds?: string[]; // LOCAL ONLY, never synced (see 14.4). One per reminder above
   remindLaterAt?: string; // LOCAL ONLY. Set by "Remind me later": the next reminder comes at this time instead
   createdAt: string;
   updatedAt: string; // ISO, set on every change, used for sync ("last change wins")
@@ -61,10 +61,11 @@ export interface Settings {
   userPhotoUri?: string; // LOCAL ONLY
   userBirthday?: { month: number; day: number; year?: number };
   defaultSendTime: string; // "00:00"
-  defaultRemindDaysBefore: RemindDays;
+  defaultRemindDaysBefore: RemindDays[];
   reminderTimeOfDay: string; // "10:00"
   onboardingDone: boolean; // LOCAL ONLY (per phone)
   autoSend: boolean; // LOCAL ONLY. Android: send scheduled wishes on WhatsApp automatically
+  defaultCountry?: string; // LOCAL ONLY (per phone). ISO code the number boxes start on, e.g. "PK"
   updatedAt: string; // when a synced setting last changed
 }
 

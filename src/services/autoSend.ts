@@ -30,7 +30,6 @@ export function autoSendStatus(): AutoSendStatus | null {
 }
 
 export const openAccessibilitySettings = () => AutoSend?.openAccessibilitySettings();
-export const openAppInfo = () => AutoSend?.openAppInfo();
 export const openExactAlarmSettings = () => AutoSend?.openExactAlarmSettings();
 export const openBatterySettings = () => AutoSend?.openBatterySettings();
 
@@ -56,28 +55,6 @@ export function cancelAllAutoSends() {
   try {
     AutoSend?.cancelAll();
   } catch {}
-}
-
-export const TEST_DELAY_SECONDS = 10;
-
-/**
- * Sends a short test message to the person's own WhatsApp number in 10 seconds,
- * so they can watch auto-send work. Returns false if it couldn't be scheduled.
- */
-export function sendAutoSendTest(ownPhone: string) {
-  if (!AutoSend) return false;
-  try {
-    AutoSend.schedule(
-      `test-${Date.now()}`,
-      ownPhone,
-      'This is a test from AutoWish. Auto-send is working!',
-      'yourself',
-      Date.now() + TEST_DELAY_SECONDS * 1000,
-    );
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Ids of wishes Android sent while the app was closed (each is returned once). */

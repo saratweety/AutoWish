@@ -3,8 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppLottie } from '../components/AppLottie';
 import { BounceButton } from '../components/BounceButton';
 import { SlideUpSheet } from '../components/SlideUpSheet';
-import { possessiveOccasion } from '../data/labels';
+import { milestone, possessiveOccasion } from '../data/labels';
 import type { RootScreenProps } from '../navigation/types';
+import { nextOccurrence } from '../services/dates';
 import { useApp } from '../state/AppContext';
 import { colors, spacing, type } from '../theme';
 
@@ -38,7 +39,11 @@ export default function ReminderScreen({ navigation, route }: RootScreenProps<'R
             {/* The gift drops in once the sheet has arrived. */}
             <AppLottie source={require('../../assets/animations/autowish_reminder_gift.json')} delayMs={300} style={styles.gift} />
           </View>
-          <Text style={[styles.title, styles.center]}>{`${possessiveOccasion(day)} is tomorrow!`}</Text>
+          <Text style={[styles.title, styles.center]}>
+            {milestone(day, nextOccurrence(day)) && day.occasion === 'birthday'
+              ? `${day.name} ${milestone(day, nextOccurrence(day))} tomorrow!`
+              : `${possessiveOccasion(day)} is tomorrow!`}
+          </Text>
           <Text style={[type.bodyMuted, styles.subtitle, styles.center]}>Busy? Schedule your wish now.</Text>
           <BounceButton
             title="Write Wish"

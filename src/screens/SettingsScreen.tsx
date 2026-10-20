@@ -3,12 +3,12 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAccountSection } from '../components/AccountCard';
+import { useDeleteAccount } from '../components/AccountCard';
 import { BounceButton } from '../components/BounceButton';
 import { Chip, ChipRow } from '../components/Chip';
 import { useClockSheet } from '../components/ClockSheet';
 import { SlideUpSheet } from '../components/SlideUpSheet';
-import { REMIND_CHOICES, REMIND_LABELS } from '../data/labels';
+import { REMIND_CHOICES, REMIND_LABELS, remindSummary } from '../data/labels';
 import { makeSampleData } from '../data/sample';
 import { autoSendStatus, autoSendSupported } from '../services/autoSend';
 import { formatClock } from '../services/dates';
@@ -58,7 +58,7 @@ export default function SettingsScreen() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [choosingReminder, setChoosingReminder] = useState(false);
   const clock = useClockSheet();
-  const account = useAccountSection();
+  const deleteAccount = useDeleteAccount();
   const { signedIn, signOut } = useAccount();
 
   // Auto-send status, checked again whenever Settings is shown or the app returns from a settings page.
@@ -123,7 +123,6 @@ export default function SettingsScreen() {
           Settings
         </Text>
 
-        {account.card}
 
         {autoSendSupported && (
           <Pressable
@@ -140,7 +139,9 @@ export default function SettingsScreen() {
               <Text style={[styles.autoMessage, autoNeedsSetup && styles.autoMessageWarn]}>{autoMessage}</Text>
             </View>
             <Switch
-              value={settings.autoSend}
+              // Shows on only when auto-send really works. Agreeing in the app is not
+              // enough: until Android's own switch is on, nothing would be sent.
+              value={autoReady}
               onValueChange={(on) => (on ? navigation.navigate('AutoSendSetup') : updateSettings({ autoSend: false }))}
               trackColor={{ true: colors.blue, false: colors.outline }}
               thumbColor={colors.surface}
@@ -182,7 +183,7 @@ export default function SettingsScreen() {
           />
           <Row
             label="Default reminder"
-            value={REMIND_LABELS[settings.defaultRemindDaysBefore]}
+            value={remindSummary(settings.defaultRemindDaysBefore)}
             onPress={() => setChoosingReminder(true)}
           />
           <Row
@@ -214,33 +215,45 @@ export default function SettingsScreen() {
           <Section title="TESTING (WHILE BUILDING)">
             <Row label="Add sample people" onPress={addSamples} />
             <Row label="Preview reminder pop-up" onPress={previewReminder} />
+            {/* Look at the login screen while staying signed in. Don't sign in as someone
+                else from here: this phone's data would be saved to that account. */}
+            <Row label="Preview login screen" onPress={() => navigation.navigate('Login', { preview: true })} />
             <Row label="Start fresh (delete everything)" onPress={() => setConfirmReset(true)} last />
           </Section>
         )}
 
-        {account.deleteButton}
+        {deleteAccount.button}
       </ScrollView>
 
       <SlideUpSheet visible={choosingReminder} onClose={() => setChoosingReminder(false)}>
         <View style={styles.sheet}>
           <Text style={[type.h2, styles.center]}>Default reminder</Text>
-          <Text style={[type.bodyMuted, styles.center]}>How early new special days remind you.</Text>
+          <Text style={[type.bodyMuted, styles.center]}>
+            How early new special days remind you. Pick as many as you like.
+          </Text>
           <View style={styles.choices}>
             <ChipRow>
               {REMIND_CHOICES.map((r) => (
                 <Chip
                   key={r}
                   label={REMIND_LABELS[r]}
-                  selected={settings.defaultRemindDaysBefore === r}
+                  selected={settings.defaultRemindDaysBefore.includes(r)}
                   onPress={() => {
-                    updateSettings({ defaultRemindDaysBefore: r });
-                    setChoosingReminder(false);
+                    // The sheet stays open, because picking several is the point.
+                    // The last one can't be removed: something has to remind you.
+                    const current = settings.defaultRemindDaysBefore;
+                    const next = current.includes(r)
+                      ? current.length === 1
+                        ? current
+                        : current.filter((x) => x !== r)
+                      : [...current, r];
+                    updateSettings({ defaultRemindDaysBefore: next });
                   }}
                 />
               ))}
             </ChipRow>
           </View>
-          <BounceButton title="Cancel" variant="text" onPress={() => setChoosingReminder(false)} />
+          <BounceButton title="Done" onPress={() => setChoosingReminder(false)} />
         </View>
       </SlideUpSheet>
 
@@ -255,7 +268,7 @@ export default function SettingsScreen() {
         </View>
       </SlideUpSheet>
       {clock.sheet}
-      {account.sheets}
+      {deleteAccount.sheet}
     </SafeAreaView>
   );
 }

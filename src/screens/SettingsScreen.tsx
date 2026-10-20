@@ -3,7 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDeleteAccount } from '../components/AccountCard';
+import { useDeleteAccount, useLogOut } from '../components/AccountCard';
 import { BounceButton } from '../components/BounceButton';
 import { Chip, ChipRow } from '../components/Chip';
 import { useClockSheet } from '../components/ClockSheet';
@@ -59,6 +59,7 @@ export default function SettingsScreen() {
   const [choosingReminder, setChoosingReminder] = useState(false);
   const clock = useClockSheet();
   const deleteAccount = useDeleteAccount();
+  const logOut = useLogOut();
   const { signedIn, signOut } = useAccount();
 
   // Auto-send status, checked again whenever Settings is shown or the app returns from a settings page.
@@ -222,6 +223,7 @@ export default function SettingsScreen() {
           </Section>
         )}
 
+        {logOut.button}
         {deleteAccount.button}
       </ScrollView>
 
@@ -268,6 +270,7 @@ export default function SettingsScreen() {
         </View>
       </SlideUpSheet>
       {clock.sheet}
+      {logOut.sheet}
       {deleteAccount.sheet}
     </SafeAreaView>
   );

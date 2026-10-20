@@ -14,6 +14,7 @@ import { isLink, linkLabel, linkUrl } from '../services/links';
 import { displayStatus, wishForNextDate } from '../services/wishes';
 import type { RootScreenProps } from '../navigation/types';
 import { useApp } from '../state/AppContext';
+import { useSendWish } from '../state/useSendWish';
 import { colors, fonts, fontSizes, radius, screenPadding, spacing, type } from '../theme';
 import type { GiftIdea, Wish } from '../types';
 
@@ -27,6 +28,7 @@ export default function PersonScreen({ navigation, route }: RootScreenProps<'Per
   const [editingGift, setEditingGift] = useState<GiftIdea | undefined>();
   const [editingLikes, setEditingLikes] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const sendWish = useSendWish();
   const day = specialDays.find((d) => d.id === route.params.specialDayId);
 
   // Deleting someone from the edit screen comes back here for a moment.
@@ -137,9 +139,18 @@ export default function PersonScreen({ navigation, route }: RootScreenProps<'Per
                   ? `Sent on ${formatLongDate(new Date(wish.sentAt ?? wish.sendAt))}.`
                   : `Goes out on ${formatLongDate(new Date(wish.sendAt))} at ${formatTime(new Date(wish.sendAt))}.`}
               </Text>
+              {/* The day is here and it hasn't gone out: sending is the thing to do. */}
+              {status === 'not_sent' && (
+                <BounceButton
+                  title="Send now on WhatsApp"
+                  icon={<Feather name="send" size={18} color={colors.text} />}
+                  onPress={() => sendWish(wish)}
+                  style={styles.stretch}
+                />
+              )}
               <BounceButton
-                title={status === 'sent' ? 'Write another' : 'Edit wish'}
-                variant="secondary"
+                title={status === 'sent' ? 'Write another' : status === 'not_sent' ? 'Edit the message' : 'Edit wish'}
+                variant={status === 'not_sent' ? 'text' : 'secondary'}
                 onPress={writeWish}
                 style={styles.stretch}
               />

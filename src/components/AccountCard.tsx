@@ -9,29 +9,15 @@ import { BounceButton } from './BounceButton';
 import { SlideUpSheet } from './SlideUpSheet';
 
 /**
- * Who you are logged in as, for "Your profile" (CLAUDE.md 14.7). Returns two pieces,
- * because the sheet must sit at the top level of the screen to cover all of it:
- * - card: your initial, your email and "Log out". Saving to the account happens by
- *   itself, so there is nothing here to press for it.
- *   Signed out (a session that lapsed): "You're signed out" and a way back in.
- * - sheet: "Not saved yet", shown when logging out with changes still to upload.
+ * Who you are logged in as, for "Your profile" (CLAUDE.md 14.7): your initial and
+ * your email. Saving to the account happens by itself, so there is nothing here to
+ * press for it, and "Log out" sits at the bottom of Settings next to "Delete account"
+ * (see useLogOut below).
+ * Signed out (a session that lapsed): "You're signed out" and a way back in.
  */
 export function useAccountCard() {
   const navigation = useNavigation();
   const { signedIn, email } = useAccount();
-  const { logOut, logOutAnyway } = useAccountActions();
-  const [busy, setBusy] = useState<'logout' | null>(null);
-  const [unsaved, setUnsaved] = useState(false);
-
-  const tryLogOut = async () => {
-    setBusy('logout');
-    const result = await logOut();
-    // 'done' has already moved to the Login screen.
-    if (result === 'unsaved') {
-      setBusy(null);
-      setUnsaved(true);
-    }
-  };
 
   const card = signedIn ? (
     <View style={styles.card}>
@@ -46,13 +32,6 @@ export function useAccountCard() {
           <Text style={styles.muted}>Your special days are saved here.</Text>
         </View>
       </View>
-      <BounceButton
-        title={busy === 'logout' ? 'Logging out…' : 'Log out'}
-        variant="text"
-        size="small"
-        onPress={tryLogOut}
-        disabled={busy !== null}
-      />
     </View>
   ) : (
     <View style={styles.card}>
@@ -69,33 +48,67 @@ export function useAccountCard() {
     </View>
   );
 
+  return card;
+}
+
+/**
+ * The "Log out" button for the bottom of Settings, just above "Delete account",
+ * and the "Not saved yet" sheet it opens when changes still have to upload.
+ * Two pieces, because the sheet must sit at the top level of the screen to cover it.
+ */
+export function useLogOut() {
+  const { signedIn } = useAccount();
+  const { logOut, logOutAnyway } = useAccountActions();
+  const [busy, setBusy] = useState<'logout' | null>(null);
+  const [unsaved, setUnsaved] = useState(false);
+
+  const tryLogOut = async () => {
+    setBusy('logout');
+    const result = await logOut();
+    // 'done' has already moved to the Login screen.
+    if (result === 'unsaved') {
+      setBusy(null);
+      setUnsaved(true);
+    }
+  };
+
+  const button = signedIn ? (
+    <BounceButton
+      title={busy === 'logout' ? 'Logging out…' : 'Log out'}
+      variant="text"
+      onPress={tryLogOut}
+      disabled={busy !== null}
+      style={styles.logOutButton}
+    />
+  ) : null;
+
   const sheet = (
     <SlideUpSheet visible={unsaved} onClose={() => setUnsaved(false)}>
-        <View style={styles.sheet}>
-          <Text style={[type.h2, styles.center]}>Not saved yet</Text>
-          <Text style={[type.bodyMuted, styles.center]}>
-            {"Some changes aren't saved to your account yet. Connect to the internet and try again, or log out anyway and lose them."}
-          </Text>
-          <BounceButton
-            title="Try again"
-            onPress={() => {
-              setUnsaved(false);
-              tryLogOut();
-            }}
-          />
-          <BounceButton
-            title="Log out anyway"
-            variant="text"
-            onPress={() => {
-              setUnsaved(false);
-              logOutAnyway();
-            }}
-          />
-        </View>
+      <View style={styles.sheet}>
+        <Text style={[type.h2, styles.center]}>Not saved yet</Text>
+        <Text style={[type.bodyMuted, styles.center]}>
+          {"Some changes aren't saved to your account yet. Connect to the internet and try again, or log out anyway and lose them."}
+        </Text>
+        <BounceButton
+          title="Try again"
+          onPress={() => {
+            setUnsaved(false);
+            tryLogOut();
+          }}
+        />
+        <BounceButton
+          title="Log out anyway"
+          variant="text"
+          onPress={() => {
+            setUnsaved(false);
+            logOutAnyway();
+          }}
+        />
+      </View>
     </SlideUpSheet>
   );
 
-  return { card, sheet };
+  return { button, sheet };
 }
 
 /**
@@ -168,5 +181,6 @@ const styles = StyleSheet.create({
   center: { textAlign: 'center' },
   danger: { backgroundColor: colors.danger },
   error: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.wordmarkCoral, textAlign: 'center' },
+  logOutButton: { alignSelf: 'center' },
   deleteButton: { alignSelf: 'center' },
 });

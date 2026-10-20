@@ -19,7 +19,10 @@ type Row = {
   name: string;
   photoUri?: string;
   photoUrl?: string;
-  line: string;
+  /** Occasion, or "Wish ready". */
+  lead: string;
+  /** The date, on its own line under `lead`, so neither gets cut off. */
+  detail: string;
   daysLeft: number;
   /** Set when a wish is already written and waiting to go out. */
   ready?: { wishId: string; when: string };
@@ -57,9 +60,10 @@ export function WishForSheet({ visible, onClose }: Props) {
         name: day.name,
         photoUri: day.photoUri,
         photoUrl: day.photoUrl,
-        line: waiting
-          ? `Wish ready · ${formatShortDate(new Date(waiting.sendAt))}, ${formatTime(new Date(waiting.sendAt))}`
-          : `${occasionName(day)} · ${formatShortDate(date)}`,
+        lead: waiting ? 'Wish ready' : occasionName(day),
+        detail: waiting
+          ? `${formatShortDate(new Date(waiting.sendAt))}, ${formatTime(new Date(waiting.sendAt))}`
+          : formatShortDate(date),
         daysLeft: daysUntil(day),
         ready: waiting ? { wishId: waiting.id, when: waiting.sendAt } : undefined,
       };
@@ -124,7 +128,7 @@ export function WishForSheet({ visible, onClose }: Props) {
             return (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${item.name}. ${item.line}. ${item.ready ? 'Edit the wish' : 'Write a wish'}`}
+                accessibilityLabel={`${item.name}. ${item.lead} · ${item.detail}. ${item.ready ? 'Edit the wish' : 'Write a wish'}`}
                 onPress={() => openWish(item)}
                 style={({ pressed }) => [styles.row, item.ready ? styles.rowReady : styles.rowNeeds, pressed && styles.pressed]}
               >
@@ -134,7 +138,10 @@ export function WishForSheet({ visible, onClose }: Props) {
                     {item.name}
                   </Text>
                   <Text style={item.ready ? styles.readyLine : type.bodyMuted} numberOfLines={1}>
-                    {item.line}
+                    {item.lead}
+                  </Text>
+                  <Text style={item.ready ? styles.readyLine : type.bodyMuted} numberOfLines={1}>
+                    {item.detail}
                   </Text>
                 </View>
                 {item.ready ? <Text style={styles.edit}>Edit</Text> : <CountdownBadge days={item.daysLeft} />}

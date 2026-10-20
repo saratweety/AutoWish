@@ -1,15 +1,8 @@
 // The app's data shapes (from the project brief, section 9).
 
 export type Occasion = 'birthday' | 'anniversary' | 'mothers_day' | 'fathers_day' | 'other';
-export type Relationship =
-  | 'friend'
-  | 'best_friend'
-  | 'family'
-  | 'wife'
-  | 'husband'
-  | 'girlfriend'
-  | 'boyfriend'
-  | 'colleague';
+/** The group a person belongs to. Still stored as `relationship` on a special day. */
+export type Relationship = 'university' | 'school' | 'office' | 'cousin' | 'family' | 'friend';
 export type Tone = 'funny' | 'emotional' | 'formal' | 'urdu';
 export type WishStatus = 'scheduled' | 'sent' | 'not_sent';
 export type RemindDays = 0 | 1 | 3 | 7 | 30; // 0 = on the day itself

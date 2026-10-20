@@ -35,7 +35,7 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
   const [error, setError] = useState<string | null>(null);
   const calendar = useCalendarSheet();
   // Who you're logged in as, and the way out. Only on the profile, not during setup.
-  const account = useAccountCard();
+  const accountCard = useAccountCard();
 
   const pickBirthday = () =>
     calendar.open({
@@ -167,7 +167,7 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
           <Text style={styles.noteText}>We only use your number to send your wishes.</Text>
         </View>
 
-        {editing && <View style={styles.account}>{account.card}</View>}
+        {editing && <View style={styles.account}>{accountCard}</View>}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -177,7 +177,6 @@ export default function AboutYouScreen({ navigation, route }: RootScreenProps<'A
       </View>
       {calendar.sheet}
       {countryField.sheet}
-      {editing && account.sheet}
     </SafeAreaView>
   );
 }

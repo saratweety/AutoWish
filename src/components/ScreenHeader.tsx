@@ -28,7 +28,7 @@ export function ScreenHeader({ title, showBack, right }: Props) {
           <Feather name="arrow-left" size={26} color={colors.text} />
         </Pressable>
       )}
-      <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
+      <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
         {title}
       </Text>
       {right}
@@ -37,7 +37,8 @@ export function ScreenHeader({ title, showBack, right }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.xs, paddingVertical: spacing.xxs },
   back: { width: touchTarget, height: touchTarget, justifyContent: 'center', marginLeft: -spacing.xxs },
-  title: { ...type.h1, flex: 1 },
+  // Two lines, so a long name like "WhatsApp auto-send" is never cut short.
+  title: { ...type.h1, flex: 1, lineHeight: 34 },
 });

@@ -25,7 +25,12 @@ export const specialDaySchema = z.object({
   month: z.number().int().min(1).max(12),
   day: z.number().int().min(1).max(31),
   year: z.number().int().min(1800).max(2200).nullish(),
-  relationship: z.enum(['friend', 'best_friend', 'family', 'wife', 'husband', 'girlfriend', 'boyfriend', 'colleague']),
+  // The six groups, plus the relationship names older app versions still send.
+  // Phones map the old names to a group when they read their own saved data.
+  relationship: z.enum([
+    'university', 'school', 'office', 'cousin', 'family', 'friend',
+    'best_friend', 'wife', 'husband', 'girlfriend', 'boyfriend', 'colleague',
+  ]),
   photoUrl: z.string().max(500).regex(/^\/photos\//, 'Must be a /photos/ path').nullish(),
   remindDaysBefore: remindDaysList,
   reminderTime: clock.nullish(),

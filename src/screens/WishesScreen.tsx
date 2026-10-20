@@ -9,7 +9,7 @@ import { Avatar } from '../components/Avatar';
 import { Chip, ChipScrollRow } from '../components/Chip';
 import { SlideInCard } from '../components/SlideInCard';
 import { StatusPill } from '../components/StatusPill';
-import { occasionName } from '../data/labels';
+import { occasionName, RELATIONSHIP_LABELS } from '../data/labels';
 import { displayStatus } from '../services/wishes';
 import { useApp } from '../state/AppContext';
 import { useSendWish } from '../state/useSendWish';
@@ -69,23 +69,27 @@ export default function WishesScreen() {
           {wishes.map((wish, index) => {
             const day = specialDays.find((d) => d.id === wish.specialDayId);
             if (!day) return null;
-            const edit = () => navigation.navigate('WriteWish', { specialDayId: day.id, wishId: wish.id });
+            // Opens their page, which shows the whole picture: this wish, the
+            // reminders, the gift ideas and the wishes sent in earlier years.
+            const openPerson = () => navigation.navigate('Person', { specialDayId: day.id });
             return (
               <Pressable
                 key={wish.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Wish for ${day.name}`}
-                disabled={wish.shown !== 'scheduled'}
-                onPress={edit}
+                accessibilityLabel={`${day.name}, ${occasionName(day)}, ${RELATIONSHIP_LABELS[day.relationship]}, wish ${wish.shown === 'not_sent' ? 'not sent' : wish.shown}. Open their page`}
+                onPress={openPerson}
               >
                 <SlideInCard index={index} style={styles.card}>
                   <Avatar name={day.name} photoUri={day.photoUri} photoUrl={day.photoUrl} />
                   <View style={styles.cardText}>
-                    <Text style={styles.name} numberOfLines={1}>
+                    <Text style={styles.name} numberOfLines={2}>
                       {day.name}
                     </Text>
-                    <Text style={styles.meta}>
-                      {occasionName(day)} · {format(new Date(wish.sendAt), 'd MMM, h:mm a')}
+                    <Text style={styles.meta} numberOfLines={1}>
+                      {occasionName(day)} · {RELATIONSHIP_LABELS[day.relationship]}
+                    </Text>
+                    <Text style={styles.meta} numberOfLines={1}>
+                      {format(new Date(wish.sendAt), 'd MMM, h:mm a')}
                     </Text>
                   </View>
                   <StatusPill status={wish.shown} onSendNow={wish.shown === 'sent' ? undefined : () => sendWish(wish)} />
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  cardText: { flex: 1, gap: 2 },
+  cardText: { flex: 1, gap: 2, minWidth: 0 },
   name: { fontFamily: fonts.headingSemiBold, fontSize: fontSizes.lg, color: colors.text },
   meta: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted },
   emptyCard: {

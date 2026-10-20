@@ -9,17 +9,15 @@ export const OCCASION_LABELS: Record<Occasion, string> = {
 };
 
 export const RELATIONSHIP_LABELS: Record<Relationship, string> = {
-  friend: 'Friend',
-  best_friend: 'Best friend',
+  university: 'University',
+  school: 'School',
+  office: 'Office',
+  cousin: 'Cousin',
   family: 'Family',
-  wife: 'Wife',
-  husband: 'Husband',
-  girlfriend: 'Girlfriend',
-  boyfriend: 'Boyfriend',
-  colleague: 'Colleague',
+  friend: 'Friend',
 };
 
-/** The order relationship chips appear in. */
+/** The order group chips appear in. */
 export const RELATIONSHIPS = Object.keys(RELATIONSHIP_LABELS) as Relationship[];
 
 export const TONE_LABELS: Record<Tone, string> = {

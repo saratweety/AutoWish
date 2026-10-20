@@ -6,12 +6,25 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://autowish-production.up.railway.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXBpYy1tYW1tb3RoLTczNjAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://autowish-production.up.railway.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXBpYy1tYW1tb3RoLTczNjAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+      }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://autowish-production.up.railway.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXBpYy1tYW1tb3RoLTczNjAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+      }
+    }
   }
 }

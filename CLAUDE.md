@@ -17,7 +17,7 @@ Read this whole file before writing any code. It is the single source of truth f
 - Tagline: **Never miss a special day**
 - Users: busy young adults and working people in Pakistan (also works anywhere) who don't want to miss a friend's, family member's or colleague's special day
 - Occasions: Birthday, Anniversary, Mother's Day, Father's Day, Other (custom name)
-- Relationships: Friend, Family, Colleague
+- Relationships: Friend, Best friend, Family, Wife, Husband, Girlfriend, Boyfriend, Colleague (one per person)
 - Core idea: get a reminder before the day. If you'll be busy, write the wish now and AutoWish handles sending it at 12:00 AM (or a time you pick)
 - Language: English UI. Wishes can be written in English, Urdu or Roman Urdu
 
@@ -154,7 +154,11 @@ All mobile, designed for 390 × 844, on the background colour, using SafeArea. B
    - "We send it on WhatsApp" · At the right time, we open WhatsApp with your wish ready. Just tap Send.
    - Page dots (active = coral pill), orange "Next" button, last page "Get started".
 5. **Permissions setup:** "Let's set up AutoWish". Cards: Notifications (to remind you, required), Contacts (to import birthdays, optional). Each with an "Allow" button that shows "Allowed" with a blue tick after. Orange "Continue", text button "I'll do this later".
-6. **Home:** "Hi {name}" (ask the user's first name once during onboarding or default to "Hi there"). Today card (pink) if any day is today: Lottie 3, yellow "TODAY" chip, "{Name}'s {occasion}", wish status line. "Upcoming" list sorted by days left: photo or initial avatar, name, "{Occasion} · {Relationship}", orange countdown badge. Floating orange "+" button. Cards use SlideInCard.
+6. **Home:** "Hi {name}" (ask the user's first name once during onboarding or default to "Hi there"). Today card (pink) if any day is today: Lottie 3, yellow "TODAY" chip, "{Name}'s {occasion}", one status line ("Wish ready · 7:08 PM", "No wish yet", or the blue tick + "Wish sent"). "Upcoming" list sorted by days left: photo or initial avatar, name, "{Occasion} · {d MMM} · {Relationship}" (no separate relationship tag), orange countdown badge. The stars game card sits below the Upcoming list. Floating orange "+" button. Cards use SlideInCard.
+   - **Filter chips** sit directly under the "Upcoming" heading: All {count} first, then one chip per relationship that has someone in it (a count of 0 is hidden). They wrap onto more lines (`ChipRow`), never scroll sideways. Selected = blue fill, white text; the rest blueMist.
+   - A chip filters **only the Upcoming list**. The Today card always shows, whatever is picked.
+   - The picked chip is remembered on this phone (`autowish.homeFilter` in AsyncStorage, never synced, see `src/services/homeFilter.ts`). A filter with nobody behind it falls back to All.
+   - While a filter is on, a small line under the list reads "Showing {Filter} · {n} of {total} · Show all".
 7. **Home empty:** Lottie 8, "No special days yet", "Add your first special day and we'll remind you before it comes.", orange "+ Add your first special day", blue text button "Import birthdays from contacts".
 8. **Add / Edit Special Day:** photo picker circle, Name, WhatsApp number (country code picker defaulting to +92, digits only), Occasion chips (Birthday, Anniversary, Mother's Day, Father's Day, Other + text field), Date picker (year optional; Mother's/Father's Day set automatically, see section 9), Relationship chips, "Remind me" chips (1 day, 3 days, 1 week before). Orange "Save". Edit mode adds a "Delete" text button with an in-app confirm.
 9. **Reminder pop-up (bottom sheet):** shown when the user opens the app from a reminder notification (and on Home for anything due tomorrow without a wish). SlideUpSheet + Lottie 4. "{Name}'s {occasion} is tomorrow!" (or "in 3 days"), "Busy? Schedule your wish now." Orange "Write Wish", text button "Remind me later" (re-reminds on the day at 10:00 AM).
@@ -175,7 +179,10 @@ All mobile, designed for 390 × 844, on the background colour, using SafeArea. B
 
 ```ts
 type Occasion = 'birthday' | 'anniversary' | 'mothers_day' | 'fathers_day' | 'other';
-type Relationship = 'friend' | 'family' | 'colleague';
+type Relationship =
+  | 'friend' | 'best_friend' | 'family'
+  | 'wife' | 'husband' | 'girlfriend' | 'boyfriend'
+  | 'colleague';   // exactly ONE per person; labels in src/data/labels.ts
 type Tone = 'funny' | 'emotional' | 'formal' | 'urdu';
 type WishStatus = 'scheduled' | 'sent' | 'not_sent';
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
-import { PanResponder, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import React, { useContext, useEffect, useMemo } from 'react';
+import { GestureResponderHandlers, PanResponder, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -10,12 +11,20 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { motion } from '../theme/motion';
-import { radius } from '../theme/spacing';
+import { radius, spacing } from '../theme/spacing';
+
+/** Spread onto whatever part of a scrolling sheet should drag it down. */
+export type SheetDrag = { panHandlers: GestureResponderHandlers };
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  children: React.ReactNode;
+  /**
+   * A function instead of plain children when the sheet scrolls: it is handed the
+   * drag handlers to put on its own heading, so the sheet pulls down from there
+   * while the list underneath keeps its own swipes.
+   */
+  children: React.ReactNode | ((drag: SheetDrag) => React.ReactNode);
   /**
    * False when the sheet holds its own scrolling list. The drag then works only on
    * the handle at the top, so swiping the list still scrolls it. Anywhere else,
@@ -43,8 +52,12 @@ const DRAG_SLOP = 8;
 export function SlideUpSheet({ visible, onClose, children, dragAnywhere = true }: Props) {
   const { height } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
-  // Keep the buttons above the phone's own bottom bar.
+  // Keep the buttons above the phone's own bottom bar. Inside the tabs there is
+  // nothing to clear: the tab bar already covers that strip and the screen ends
+  // above it, so adding the inset again only leaves a white band under the sheet.
   const { bottom } = useSafeAreaInsets();
+  const underTabs = useContext(BottomTabBarHeightContext) !== undefined;
+  const padBottom = underTabs ? spacing.xl : spacing.xxl + bottom;
   const y = useSharedValue(height);
   const scrim = useSharedValue(0);
 
@@ -111,14 +124,14 @@ export function SlideUpSheet({ visible, onClose, children, dragAnywhere = true }
         />
       </Animated.View>
       <Animated.View
-        style={[styles.sheet, { paddingBottom: 32 + bottom }, sheetStyle]}
+        style={[styles.sheet, { paddingBottom: padBottom }, sheetStyle]}
         accessibilityViewIsModal={visible}
         {...(dragAnywhere ? drag.panHandlers : {})}
       >
         <View style={styles.grabArea} {...(dragAnywhere ? {} : drag.panHandlers)}>
           <View style={styles.grab} />
         </View>
-        {children}
+        {typeof children === 'function' ? children({ panHandlers: drag.panHandlers }) : children}
       </Animated.View>
     </>
   );

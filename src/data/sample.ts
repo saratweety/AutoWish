@@ -27,7 +27,7 @@ export function makeSampleData(): { days: SpecialDayInput[]; wishes: WishInput[]
   const parents = person('Ammi and Abbu', { occasion: 'anniversary', ...inDays(3), relationship: 'family', remindDaysBefore: [3] });
   const sara = person('Sara', { occasion: 'birthday', ...inDays(9), relationship: 'friend', remindDaysBefore: [1] });
   const abbu = person('Abbu', { occasion: 'fathers_day', month: 6, day: 1, relationship: 'family', remindDaysBefore: [7] });
-  const zainab = person('Zainab', { occasion: 'birthday', ...inDays(-14), relationship: 'colleague', remindDaysBefore: [1] });
+  const zainab = person('Zainab', { occasion: 'birthday', ...inDays(-14), relationship: 'office', remindDaysBefore: [1] });
   const usman = person('Usman', { occasion: 'birthday', ...inDays(-18), relationship: 'friend', remindDaysBefore: [1] });
 
   const wish = (day: SpecialDayInput, rest: Omit<WishInput, 'id' | 'specialDayId'>): WishInput => ({ id: newId(), specialDayId: day.id, ...rest });

@@ -76,83 +76,104 @@ export function ContactPickerSheet({ visible, onClose, onPick, countryCode }: Pr
   // Search by name or by digits in the number.
   const query = search.trim().toLowerCase();
   const digits = query.replace(/\D/g, '');
+  // Names match from the start of a name, not from the middle: "h" finds "Hamza"
+  // and "Ali Haider", never "Ahmed". Type more words and each one has to start a
+  // name of its own, so "ali h" finds "Ali Haider".
+  const terms = query ? query.split(/\s+/) : [];
+  /** 0 when the first name matches, 1 when a later name does, null when it doesn't. */
+  const nameRank = (name: string): number | null => {
+    const words = name.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.every((t) => words.some((w) => w.startsWith(t)))) return null;
+    return words[0]?.startsWith(terms[0]) ? 0 : 1;
+  };
+
   const shown = query
-    ? items.filter((c) => c.name.toLowerCase().includes(query) || (digits.length > 2 && c.phone.includes(digits)))
+    ? items
+        .map((c) => ({ c, rank: nameRank(c.name) }))
+        // Numbers still match anywhere in them, once enough digits are typed to be useful.
+        .filter((m) => m.rank !== null || (digits.length > 2 && m.c.phone.includes(digits)))
+        // First names first, then second names; alphabetical within each.
+        .sort((a, b) => (a.rank ?? 2) - (b.rank ?? 2))
+        .map((m) => m.c)
     : items;
 
   return (
     <SlideUpSheet visible={visible} onClose={close} dragAnywhere={false}>
-      <View style={[styles.body, { height: height * 0.75 }]}>
-        <Text style={[type.h2, styles.title]}>Pick a contact</Text>
+      {(drag) => (
+        <View style={[styles.body, { height: height * 0.6 }]}>
+          <View style={styles.head} {...drag.panHandlers}>
+            <Text style={[type.h2, styles.title]}>Pick a contact</Text>
+          </View>
 
-        {status === 'loading' && <ActivityIndicator color={colors.blue} style={styles.center} />}
+          {status === 'loading' && <ActivityIndicator color={colors.blue} style={styles.center} />}
 
-        {status === 'no_permission' && (
-          <Message
-            title="AutoWish needs your contacts"
-            text="Allow access to contacts to pick a number. They stay on your phone."
-            action="Open phone settings"
-            onAction={() => Linking.openSettings()}
-            secondary="Try again"
-            onSecondary={retry}
-          />
-        )}
-
-        {status === 'error' && (
-          <Message title="Couldn't read your contacts" text="Something went wrong. Please try again." action="Try again" onAction={retry} />
-        )}
-
-        {status === 'ready' && (
-          <>
-            <View style={styles.search}>
-              <Feather name="search" size={20} color={colors.greyBlue} />
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search name or number"
-                placeholderTextColor={colors.greyBlue}
-                accessibilityLabel="Search contacts"
-                autoCorrect={false}
-                style={styles.searchInput}
-              />
-            </View>
-            <FlatList
-              data={shown}
-              keyExtractor={(c) => c.key}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.list}
-              ListEmptyComponent={
-                <Text style={[type.bodyMuted, styles.empty]}>
-                  {items.length === 0 ? 'None of your contacts have a phone number saved.' : 'No contacts match your search.'}
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.name}, ${showNumber(item.phone)}`}
-                  onPress={() => {
-                    onPick({ name: item.name, phone: item.phone });
-                    close();
-                  }}
-                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                >
-                  <Avatar name={item.name} photoUri={item.photoUri} size={44} />
-                  <View style={styles.rowText}>
-                    <Text style={styles.name} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Text style={type.caption} numberOfLines={1}>
-                      {showNumber(item.phone)}
-                      {item.label ? ` · ${item.label}` : ''}
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={colors.greyBlue} />
-                </Pressable>
-              )}
+          {status === 'no_permission' && (
+            <Message
+              title="AutoWish needs your contacts"
+              text="Allow access to contacts to pick a number. They stay on your phone."
+              action="Open phone settings"
+              onAction={() => Linking.openSettings()}
+              secondary="Try again"
+              onSecondary={retry}
             />
-          </>
-        )}
-      </View>
+          )}
+
+          {status === 'error' && (
+            <Message title="Couldn't read your contacts" text="Something went wrong. Please try again." action="Try again" onAction={retry} />
+          )}
+
+          {status === 'ready' && (
+            <>
+              <View style={styles.search}>
+                <Feather name="search" size={20} color={colors.greyBlue} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search name or number"
+                  placeholderTextColor={colors.greyBlue}
+                  accessibilityLabel="Search contacts"
+                  autoCorrect={false}
+                  style={styles.searchInput}
+                />
+              </View>
+              <FlatList
+                data={shown}
+                keyExtractor={(c) => c.key}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                  <Text style={[type.bodyMuted, styles.empty]}>
+                    {items.length === 0 ? 'None of your contacts have a phone number saved.' : 'No contacts match your search.'}
+                  </Text>
+                }
+                renderItem={({ item }) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.name}, ${showNumber(item.phone)}`}
+                    onPress={() => {
+                      onPick({ name: item.name, phone: item.phone });
+                      close();
+                    }}
+                    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                  >
+                    <Avatar name={item.name} photoUri={item.photoUri} size={44} />
+                    <View style={styles.rowText}>
+                      <Text style={styles.name} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={type.caption} numberOfLines={1}>
+                        {showNumber(item.phone)}
+                        {item.label ? ` · ${item.label}` : ''}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color={colors.greyBlue} />
+                  </Pressable>
+                )}
+              />
+            </>
+          )}
+        </View>
+      )}
     </SlideUpSheet>
   );
 }
@@ -173,6 +194,8 @@ function Message({ title, text, action, onAction, secondary, onSecondary }: Mess
 const styles = StyleSheet.create({
   body: { alignSelf: 'stretch', gap: spacing.sm, paddingTop: spacing.xs },
   title: { textAlign: 'center' },
+  // Dragging the heading pulls the sheet down, so it needs room around the text.
+  head: { alignSelf: 'stretch', paddingBottom: spacing.xs },
   center: { marginTop: spacing.xxl },
   search: {
     minHeight: 48,

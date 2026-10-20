@@ -128,7 +128,8 @@ export default function MyGiftScreen({ navigation }: RootScreenProps<'MyGift'>) 
         <TodayCard
           compact
           equipped={gift.equipped}
-          title={soonest ? possessiveOccasion(soonest) : "Ahmed's birthday"}
+          // Nobody saved yet: an example name, so the preview looks like a real card.
+          title={soonest ? possessiveOccasion(soonest) : "Harry's birthday"}
           status={<Text style={[styles.previewStatus, { color: previewText }]}>Wish scheduled for 12:00 AM</Text>}
         />
 

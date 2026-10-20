@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePhotoSource } from '../api/photos';
 import { BounceButton } from '../components/BounceButton';
-import { Chip, ChipRow, ChipScrollRow } from '../components/Chip';
+import { Chip, ChipRow } from '../components/Chip';
 import { useCalendarSheet } from '../components/CalendarSheet';
 import { datePartsForCalendar, DateFields, emptyDateParts, readDateParts, toDateParts } from '../components/DateFields';
 import { useClockSheet } from '../components/ClockSheet';
@@ -267,19 +267,20 @@ export default function AddSpecialDayScreen({ navigation, route }: RootScreenPro
           <DateFields value={date} onPress={pickDate} />
         )}
 
-        <FieldLabel>Relationship</FieldLabel>
-        <ChipScrollRow edge={formPadding}>
+        <FieldLabel>Group</FieldLabel>
+        {/* Wraps onto more lines, like the Occasion chips, so nothing runs off the screen. */}
+        <ChipRow>
           {RELATIONSHIPS.map((r) => (
             <Chip key={r} label={RELATIONSHIP_LABELS[r]} selected={relationship === r} onPress={() => setRelationship(r)} />
           ))}
-        </ChipScrollRow>
+        </ChipRow>
 
         <FieldLabel>Remind me</FieldLabel>
-        <ChipScrollRow edge={formPadding}>
+        <ChipRow>
           {REMIND_CHOICES.map((r) => (
             <Chip key={r} compact label={REMIND_LABELS[r]} selected={remind.includes(r)} onPress={() => toggleRemind(r)} />
           ))}
-        </ChipScrollRow>
+        </ChipRow>
         <Text style={type.caption}>{`Pick as many as you like. Right now: ${remindSummary(remind).toLowerCase()}.`}</Text>
         <TimeField
           icon="clock"

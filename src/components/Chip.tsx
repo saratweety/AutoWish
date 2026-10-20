@@ -8,19 +8,24 @@ type Props = {
   onPress?: () => void;
   /** Slightly smaller, for rows that should fit on one line (filters). */
   compact?: boolean;
+  /** How many people are behind this chip, shown after the label (filter chips). */
+  count?: number;
 };
 
-/** Rounded choice chip. Selected = blue fill. */
-export function Chip({ label, selected, onPress, compact }: Props) {
+/** Rounded choice chip. Selected = blue fill, white text. */
+export function Chip({ label, selected, onPress, compact, count }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
       onPress={onPress}
       style={({ pressed }) => [styles.chip, compact && styles.compact, selected && styles.selected, pressed && styles.pressed]}
     >
-      <Text style={[styles.label, compact && styles.compactLabel]}>{label}</Text>
+      <Text style={[styles.label, compact && styles.compactLabel, selected && styles.selectedLabel]}>{label}</Text>
+      {count !== undefined && (
+        <Text style={[styles.count, compact && styles.compactLabel, selected && styles.selectedCount]}>{count}</Text>
+      )}
     </Pressable>
   );
 }
@@ -55,13 +60,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     backgroundColor: colors.blueMist,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xxs + 2,
   },
   compact: { paddingHorizontal: spacing.md },
   selected: { backgroundColor: colors.blue },
   pressed: { opacity: 0.8 },
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.text },
+  selectedLabel: { color: colors.surface },
+  count: { fontFamily: fonts.bodyExtraBold, fontSize: fontSizes.sm, color: colors.textMuted },
+  selectedCount: { color: colors.blueMist },
   compactLabel: { fontSize: fontSizes.sm + 1 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   scrollRow: { gap: spacing.xs },

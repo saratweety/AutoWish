@@ -1,4 +1,4 @@
-import type { Occasion, Relationship, RemindDays, SpecialDay, Tone } from '../types';
+import type { GiftRemindDays, Occasion, Relationship, RemindDays, SpecialDay, Tone } from '../types';
 
 export const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: 'Birthday',
@@ -39,6 +39,17 @@ export const REMIND_LABELS: Record<RemindDays, string> = {
 
 /** The order reminder choices appear in. */
 export const REMIND_CHOICES: RemindDays[] = [0, 1, 3, 7, 30];
+
+/** How long before the day a "buy the gift" nudge can be set to. */
+export const GIFT_REMIND_CHOICES: GiftRemindDays[] = [3, 5, 7, 14, 30];
+
+export const GIFT_REMIND_LABELS: Record<GiftRemindDays, string> = {
+  3: '3 days',
+  5: '5 days',
+  7: '1 week',
+  14: '2 weeks',
+  30: '1 month',
+};
 
 /** Short form for a list of reminders: "1 month, 1 week and 1 day before". */
 export const REMIND_SHORT: Record<RemindDays, string> = {

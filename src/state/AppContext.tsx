@@ -10,18 +10,21 @@ import {
   cancelWishNotifications,
   remindLaterTime,
   rescheduleAll,
+  scheduleGiftReminder,
   scheduleReminders,
   scheduleWishNotifications,
   type WishNotificationIds,
 } from '../services/notifications';
 import { DEFAULT_GIFT, DEFAULT_SETTINGS, storage } from '../storage';
-import type { GiftState, Settings, SpecialDay, SpecialDayInput, Wish, WishInput } from '../types';
+import type { GiftIdea, GiftIdeaInput, GiftState, Settings, SpecialDay, SpecialDayInput, Wish, WishInput } from '../types';
 
 type AppState = {
   /** False until saved data has been read from the phone. */
   ready: boolean;
   specialDays: SpecialDay[];
   wishes: Wish[];
+  /** Gift ideas and bought gifts, for the people on the list. */
+  giftIdeas: GiftIdea[];
   settings: Settings;
   /** Stars, unlocked items and what the gift is wearing (My Gift and the daily game). */
   gift: GiftState;
@@ -29,6 +32,8 @@ type AppState = {
   saveDay: (day: SpecialDayInput) => Promise<void>;
   deleteDay: (id: string) => Promise<void>;
   saveWish: (wish: WishInput) => Promise<void>;
+  saveGiftIdea: (idea: GiftIdeaInput) => Promise<void>;
+  deleteGiftIdea: (id: string) => Promise<void>;
   markWishSent: (id: string) => Promise<void>;
   /** "Remind me later": remind again on the day. */
   remindLater: (dayId: string) => Promise<void>;
@@ -65,13 +70,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [specialDays, setSpecialDays] = useState<SpecialDay[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
+  const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [gift, setGift] = useState<GiftState>(DEFAULT_GIFT);
 
   // The latest data, for actions that finish after a wait (scheduling, syncing).
   // Every change goes through the commit functions below, which update this
   // straight away, so it is never behind (React state updates a moment later).
-  const latest = useRef({ specialDays, wishes, settings, gift });
+  const latest = useRef({ specialDays, wishes, giftIdeas, settings, gift });
   const commit = {
     days: (next: (list: SpecialDay[]) => SpecialDay[]) => {
       latest.current.specialDays = next(latest.current.specialDays);
@@ -80,6 +86,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     wishes: (next: (list: Wish[]) => Wish[]) => {
       latest.current.wishes = next(latest.current.wishes);
       setWishes(latest.current.wishes);
+    },
+    giftIdeas: (next: (list: GiftIdea[]) => GiftIdea[]) => {
+      latest.current.giftIdeas = next(latest.current.giftIdeas);
+      setGiftIdeas(latest.current.giftIdeas);
     },
     settings: (next: Settings) => {
       latest.current.settings = next;
@@ -107,11 +117,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Read saved data once when the app opens, then refresh all notifications.
   // That moves days that have passed on to next year.
   useEffect(() => {
-    Promise.all([storage.loadSpecialDays(), storage.loadWishes(), storage.loadSettings(), storage.loadGift()]).then(([d, w, s, g]) => {
+    Promise.all([
+      storage.loadSpecialDays(),
+      storage.loadWishes(),
+      storage.loadSettings(),
+      storage.loadGift(),
+      storage.loadGiftIdeas(),
+    ]).then(([d, w, s, g, ideas]) => {
       commit.days(() => d);
       commit.wishes(() => w);
       commit.settings(s);
       commit.gift(g);
+      commit.giftIdeas(() => ideas);
       setReady(true);
       rescheduleFrom(d, w, s).catch(() => {});
     });
@@ -126,6 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const kept = { ...DEFAULT_SETTINGS, onboardingDone, autoSend, defaultCountry };
     commit.days(() => []);
     commit.wishes(() => []);
+    commit.giftIdeas(() => []);
     commit.settings(kept);
     commit.gift(DEFAULT_GIFT);
     await storage.clearAccountData(kept);
@@ -201,6 +219,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (ready) storage.saveGift(gift);
   }, [ready, gift]);
+  useEffect(() => {
+    if (ready) storage.saveGiftIdeas(giftIdeas);
+  }, [ready, giftIdeas]);
 
   const value = useMemo<AppState>(() => {
     const findDay = (id: string) => latest.current.specialDays.find((d) => d.id === id);
@@ -221,6 +242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ready,
       specialDays,
       wishes,
+      giftIdeas,
       settings,
       gift,
 
@@ -245,8 +267,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // A deleted person's wishes go too, with their notifications.
         const theirWishes = latest.current.wishes.filter((x) => x.specialDayId === id);
         for (const w of theirWishes) await cancelWishNotifications(w);
+        for (const g of latest.current.giftIdeas.filter((x) => x.specialDayId === id)) await cancelNotification(g.notificationId);
         commit.days((list) => list.filter((d) => d.id !== id));
         commit.wishes((list) => list.filter((w) => w.specialDayId !== id));
+        commit.giftIdeas((list) => list.filter((g) => g.specialDayId !== id));
         // Soft delete: the outbox keeps a copy marked deletedAt, so the server (and
         // through it, the user's other phones) learn that these were deleted.
         const deletedAt = now();
@@ -265,6 +289,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ? await scheduleWishNotifications(fresh, day, autoSendActive(latest.current.settings)).catch(() => ({}))
           : {};
         commit.wishes((list) => list.map((w) => (w.id === wish.id ? { ...w, ...ids } : w)));
+      },
+
+      saveGiftIdea: async (idea) => {
+        // The old "buy it" nudge may now be wrong (renamed, bought, reminder off).
+        await cancelNotification(latest.current.giftIdeas.find((g) => g.id === idea.id)?.notificationId);
+        const fresh: GiftIdea = { ...idea, updatedAt: now(), notificationId: undefined };
+        // Saved on this phone only for now: the server has no gift table yet.
+        commit.giftIdeas((list) => upsert(list, fresh));
+        const day = findDay(idea.specialDayId);
+        const notificationId = day ? await scheduleGiftReminder(fresh, day, latest.current.settings).catch(() => undefined) : undefined;
+        commit.giftIdeas((list) => list.map((g) => (g.id === fresh.id ? { ...g, notificationId } : g)));
+      },
+
+      deleteGiftIdea: async (id) => {
+        await cancelNotification(latest.current.giftIdeas.find((g) => g.id === id)?.notificationId);
+        commit.giftIdeas((list) => list.filter((g) => g.id !== id));
       },
 
       markWishSent: async (id) => {
@@ -319,12 +359,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await storage.clearAll();
         commit.days(() => []);
         commit.wishes(() => []);
+        commit.giftIdeas(() => []);
         commit.settings(DEFAULT_SETTINGS);
         commit.gift(DEFAULT_GIFT);
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, specialDays, wishes, settings, gift]);
+  }, [ready, specialDays, wishes, giftIdeas, settings, gift]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

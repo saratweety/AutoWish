@@ -1,9 +1,9 @@
-import { subMinutes } from 'date-fns';
-import { occasionWord } from '../data/labels';
-import type { Settings, SpecialDay, Wish } from '../types';
+import { subDays, subMinutes } from 'date-fns';
+import { occasionWord, possessiveOccasion } from '../data/labels';
+import type { GiftIdea, Settings, SpecialDay, Wish } from '../types';
 import { autoSendSupported, cancelAllAutoSends, cancelAutoSend, scheduleAutoSend } from './autoSend';
-import { nextOccurrence } from './dates';
-import { nextReminders, reminderText } from './reminderPlan';
+import { nextOccurrence, withTime } from './dates';
+import { nextReminders, reminderText, reminderTimeFor } from './reminderPlan';
 import { loadNotifications } from './notificationsModule';
 import { ensureChannel, notificationsAllowed, REMINDER_CHANNEL_ID, requestNotifications } from './permissions';
 
@@ -11,7 +11,11 @@ export { nextReminders, reminderText, reminderTimeFor, remindLaterTime } from '.
 export type { Reminder } from './reminderPlan';
 
 /** What a notification is about. Stored inside it, so a tap knows what to open. */
-export type NotificationData = { kind: 'reminder'; specialDayId: string } | { kind: 'send'; wishId: string };
+export type NotificationData =
+  | { kind: 'reminder'; specialDayId: string }
+  | { kind: 'send'; wishId: string }
+  // "Time to buy Ahmad's gift": opens that person's page, where the idea is listed.
+  | { kind: 'gift'; specialDayId: string; giftIdeaId: string };
 
 /** Show AutoWish notifications even while the app is open. Call once at start-up. */
 export function setUpNotificationDisplay() {
@@ -69,6 +73,20 @@ export async function scheduleReminders(day: SpecialDay, settings: Settings) {
     if (id) ids.push(id);
   }
   return ids;
+}
+
+/**
+ * Schedules the "buy this gift" nudge, N days before the day at the reminder time.
+ * Nothing is scheduled once the gift is bought, or if the moment has passed.
+ */
+export async function scheduleGiftReminder(idea: GiftIdea, day: SpecialDay, settings: Settings) {
+  if (!idea.remindToBuy || idea.status !== 'idea') return undefined;
+  const at = withTime(subDays(nextOccurrence(day), idea.remindDaysBefore), reminderTimeFor(day, settings));
+  return scheduleAt(at, `Time to buy ${day.name}'s gift`, `${idea.title} — ${possessiveOccasion(day)} is in ${idea.remindDaysBefore} days.`, {
+    kind: 'gift',
+    specialDayId: day.id,
+    giftIdeaId: idea.id,
+  });
 }
 
 /** How long before the send time the heads-up arrives. */

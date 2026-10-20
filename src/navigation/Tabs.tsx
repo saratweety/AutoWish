@@ -40,6 +40,11 @@ function useNotificationTaps() {
         navigation.navigate('Reminder', { specialDayId: data.specialDayId });
         return;
       }
+      // "Time to buy their gift": open their page, where the gift ideas are listed.
+      if (data.kind === 'gift') {
+        navigation.navigate('Person', { specialDayId: data.specialDayId });
+        return;
+      }
       const wish = wishes.find((w) => w.id === data.wishId);
       if (wish) sendWish(wish);
     };

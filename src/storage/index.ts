@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_EQUIPPED, FREE_ITEMS } from '../data/giftItems';
-import type { GiftState, RemindDays, Settings, SpecialDay, Wish } from '../types';
+import type { GiftIdea, GiftState, RemindDays, Settings, SpecialDay, Wish } from '../types';
 import { DEFAULT_COUNTRY } from '../data/countries';
 
 /** "Long ago": the updatedAt of defaults, so anything saved on the server wins over them. */
@@ -12,6 +12,7 @@ const KEYS = {
   wishes: 'autowish.wishes',
   settings: 'autowish.settings',
   gift: 'autowish.gift',
+  giftIdeas: 'autowish.giftIdeas',
 } as const;
 
 // Written by older versions that offered "Use without an account". An account is
@@ -80,11 +81,19 @@ async function loadWishes() {
   return wishes.map((w) => (w.updatedAt ? w : { ...w, updatedAt: now }));
 }
 
+async function loadGiftIdeas() {
+  const ideas = await load<GiftIdea[]>(KEYS.giftIdeas, []);
+  const now = new Date().toISOString();
+  return ideas.map((g) => (g.updatedAt ? g : { ...g, updatedAt: now }));
+}
+
 export const storage = {
   loadSpecialDays,
   saveSpecialDays: (days: SpecialDay[]) => save(KEYS.specialDays, days),
   loadWishes,
   saveWishes: (wishes: Wish[]) => save(KEYS.wishes, wishes),
+  loadGiftIdeas,
+  saveGiftIdeas: (ideas: GiftIdea[]) => save(KEYS.giftIdeas, ideas),
   loadSettings: async () => {
     const saved = await load<Partial<Settings>>(KEYS.settings, {});
     return { ...DEFAULT_SETTINGS, ...saved, defaultRemindDaysBefore: remindList(saved.defaultRemindDaysBefore) };
@@ -94,7 +103,7 @@ export const storage = {
   saveGift: (gift: GiftState) => save(KEYS.gift, gift),
   /** Logout: removes the account's data, keeps per-phone settings (passed in). */
   clearAccountData: async (keptSettings: Settings) => {
-    await AsyncStorage.multiRemove([KEYS.specialDays, KEYS.wishes, KEYS.gift]);
+    await AsyncStorage.multiRemove([KEYS.specialDays, KEYS.wishes, KEYS.gift, KEYS.giftIdeas]);
     await save(KEYS.settings, keptSettings);
   },
   clearAll: () => AsyncStorage.multiRemove([...Object.values(KEYS), ...OLD_KEYS]),

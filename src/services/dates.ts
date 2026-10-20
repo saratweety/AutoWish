@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, format, getDaysInMonth, startOfDay } from 'date-fns';
+import { differenceInCalendarDays, format, getDaysInMonth, startOfDay, subDays } from 'date-fns';
 import type { SpecialDay } from '../types';
 
 /** The nth Sunday of a month. monthIndex is 0-based (4 = May). */
@@ -64,3 +64,6 @@ export function nextStreak(lastPlayed: string | undefined, streak: number, today
   yesterday.setDate(yesterday.getDate() - 1);
   return lastPlayed === todayKey(yesterday) ? streak + 1 : 1;
 }
+
+/** N days before a date, e.g. when a "buy the gift" reminder should land. */
+export const subDaysFrom = (date: Date, days: number) => subDays(date, days);

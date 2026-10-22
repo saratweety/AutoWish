@@ -289,15 +289,57 @@ Until then, other phones show the letter avatar. Nothing is broken without it.
 
 Click by click:
 
-1. Railway project -> **+ Create** -> **Bucket**.
-2. Open the bucket -> **Credentials** tab.
-3. Copy those values into the **server** service's **Variables**:
-   `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`,
-   `S3_SECRET_ACCESS_KEY`.
-4. The server redeploys by itself.
+1. Railway project -> **+ New** -> **Bucket**. Pick a region (it cannot be
+   changed later) and a name, e.g. `autowish-photos`. Wait for it to go green.
+2. Click the **server** service -> **Variables** tab -> **+ New Variable**, and
+   add these five. **Type them exactly as written, braces included** — do not
+   open the bucket and copy its keys. These are *variable references*: Railway
+   fills in the real values itself, the same trick as
+   `${{Postgres.DATABASE_URL}}` in Step 4.
 
-**Checkpoint.** Add a photo to a person on phone 1, wait for "Saved to your
-account", then open phone 2. Done when the photo appears there too.
+   ```
+   S3_ENDPOINT=${{Bucket.ENDPOINT}}
+   S3_REGION=${{Bucket.REGION}}
+   S3_BUCKET=${{Bucket.BUCKET}}
+   S3_ACCESS_KEY_ID=${{Bucket.ACCESS_KEY_ID}}
+   S3_SECRET_ACCESS_KEY=${{Bucket.SECRET_ACCESS_KEY}}
+   ```
+
+   Swap `Bucket` for whatever you named the bucket service in step 1 — if you
+   called it `autowish-photos`, it is `${{autowish-photos.ENDPOINT}}` and so on.
+   Railway usually offers the name in a dropdown as you type `${{`.
+
+   **Why references and not the keys themselves:** the secret key never gets
+   copied, pasted or saved anywhere by hand, and if the bucket's keys are ever
+   rotated the server keeps working without you changing anything.
+
+3. **Deploy** the change when Railway offers it (or it redeploys by itself).
+4. Open the bucket -> **Credentials** tab and look for the addressing style. If
+   it says **path-style**, add one more variable to the server:
+   `S3_FORCE_PATH_STYLE` = `true`. New buckets are virtual-hosted-style and need
+   nothing here.
+
+**Checkpoint.** You do not need two phones for this. Run:
+
+```
+$ curl https://autowish-production.up.railway.app/health
+```
+
+Done when it prints `{"ok":true,"photos":true}`. `"photos":false` means the
+server did not get the settings — check for a typo in the five variable names,
+and that the bucket service's name matches what you typed inside `${{...}}`.
+
+Then the real test, once you have two phones (after Step 7b): add a photo to a
+person on phone 1, wait for "Saved to your account", open phone 2. Done when the
+photo appears there too.
+
+**Note.** Railway's **Connect** preset for the **AWS SDK** on the bucket works
+too, instead of step 2 — the server also reads the `AWS_*` and bare
+`BUCKET` / `ACCESS_KEY_ID` names it writes (`server/src/lib/photoStore.ts`).
+
+**Privacy.** Photos are stored under the owner's user id and `GET /photos/...`
+refuses to serve a photo to anyone else, so one account can never load another
+account's photos. Deleting your account deletes its photos too.
 
 ---
 

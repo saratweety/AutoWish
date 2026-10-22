@@ -4,7 +4,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { requireUser } from './lib/auth';
-import { deletePhoto } from './lib/photoStore';
+import { deletePhoto, photosEnabled } from './lib/photoStore';
 import { prisma } from './lib/prisma';
 import { meRouter } from './routes/me';
 import { photosRouter } from './routes/photos';
@@ -23,8 +23,10 @@ app.use(cors({ origin: false }));
 app.use(express.json({ limit: '2mb' }));
 
 // GET /health  ->  used to check the deploy works. No login needed.
+// "photos" says whether the bucket settings arrived, so you can check photo
+// sync is on without needing two phones. It is only ever true or false.
 app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, photos: photosEnabled });
 });
 
 // Reads the Clerk login token from the "Authorization: Bearer ..." header.
@@ -102,6 +104,7 @@ async function cleanUpDeletedRows() {
 const port = Number(process.env.PORT) || 8080;
 app.listen(port, () => {
   console.log(`AutoWish server listening on port ${port}`);
+  console.log(photosEnabled ? 'Photo uploads: on' : 'Photo uploads: off (no bucket settings)');
   cleanUpDeletedRows();
   setInterval(cleanUpDeletedRows, DAY_MS);
 });

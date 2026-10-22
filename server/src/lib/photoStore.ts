@@ -11,18 +11,35 @@ import {
 // or Cloudflare R2). If the S3_* variables aren't set, photo uploads are
 // switched off and everything else keeps working.
 
-const bucket = process.env.S3_BUCKET;
+// A setting can arrive under more than one name, depending on how the bucket
+// was wired up: our own S3_* variables, the names a Railway Bucket publishes,
+// or the ones Railway's "AWS SDK" connect preset writes into the service. The
+// first name that has a value wins, so any of the three ways works.
+function setting(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return undefined;
+}
+
+const bucket = setting('S3_BUCKET', 'BUCKET', 'AWS_S3_BUCKET_NAME', 'BUCKET_NAME');
+const accessKeyId = setting('S3_ACCESS_KEY_ID', 'ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID', 'BUCKET_ACCESS_KEY_ID');
+const secretAccessKey = setting(
+  'S3_SECRET_ACCESS_KEY',
+  'SECRET_ACCESS_KEY',
+  'AWS_SECRET_ACCESS_KEY',
+  'BUCKET_SECRET_ACCESS_KEY',
+);
+const endpoint = setting('S3_ENDPOINT', 'ENDPOINT', 'AWS_ENDPOINT_URL', 'BUCKET_ENDPOINT');
+const region = setting('S3_REGION', 'REGION', 'AWS_DEFAULT_REGION') ?? 'auto';
+// Railway buckets use virtual-hosted-style addresses. Buckets made before that
+// change need path-style instead; the bucket's Credentials tab says which.
+const forcePathStyle = setting('S3_FORCE_PATH_STYLE') === 'true' || setting('AWS_S3_URL_STYLE') === 'path';
+
 const client =
-  bucket && process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
-    ? new S3Client({
-        endpoint: process.env.S3_ENDPOINT || undefined,
-        region: process.env.S3_REGION || 'auto',
-        forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
-        credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY_ID,
-          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-        },
-      })
+  bucket && accessKeyId && secretAccessKey
+    ? new S3Client({ endpoint, region, forcePathStyle, credentials: { accessKeyId, secretAccessKey } })
     : null;
 
 export const photosEnabled = client !== null;
